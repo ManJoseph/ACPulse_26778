@@ -1,0 +1,55 @@
+package com.acpulse.service;
+
+import com.acpulse.model.Notification;
+import com.acpulse.model.Room;
+import com.acpulse.model.User;
+import com.acpulse.repository.RoomRepository;
+import com.acpulse.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class ScheduledTaskService {
+
+    @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Scheduled(fixedRate = 60000) // Run every 60 seconds
+    @Transactional
+    public void checkExpiredOccupations() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime gracePeriodEnd = now.minusMinutes(5);
+
+        // Find expired rooms
+        List<Room> expiredRooms = roomRepository.findByStatusAndOccupiedUntilBefore(
+                Room.RoomStatus.OCCUPIED,
+                gracePeriodEnd
+        );
+
+        for (Room room : expiredRooms) {
+            if (room.getCurrentLecturerId() != null) {
+                userRepository.findById(room.getCurrentLecturerId()).ifPresent(lecturer -> {
+                    // Send notification
+                    notificationService.createNotification(
+                            lecturer.getId(),
+                            "Room Occupation Expired",
+                            "Your occupation of Room " + room.getRoomNumber() +
+                                    " expired at " + room.getOccupiedUntil() +
+                                    ". Please extend if still needed or release the room.",
+                            Notification.NotificationType.ROOM_EXPIRY
+                    );
+                });
+            }
+        }
+    }
+}
