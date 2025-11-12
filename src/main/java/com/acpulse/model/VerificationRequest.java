@@ -10,9 +10,10 @@ public class VerificationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // ManyToOne: VerificationRequest → User (unidirectional)
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    // Many-to-One: VerificationRequest → User
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "submitted_id", nullable = false)
     private String submittedId;
@@ -49,8 +50,8 @@ public class VerificationRequest {
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Integer getUserId() { return userId; }
-    public void setUserId(Integer userId) { this.userId = userId; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
     public String getSubmittedId() { return submittedId; }
     public void setSubmittedId(String submittedId) { this.submittedId = submittedId; }

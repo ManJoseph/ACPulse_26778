@@ -59,15 +59,19 @@ public class RoomService {
             throw new BadRequestException("End time must be in the future");
         }
 
+        // Get lecturer
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+
         // Update room
         room.setStatus(Room.RoomStatus.OCCUPIED);
-        room.setCurrentLecturerId(lecturerId);
+        room.setCurrentLecturer(lecturer);
         room.setOccupiedUntil(request.getEndTime());
         room.setStatusUpdatedAt(LocalDateTime.now());
         roomRepository.save(room);
 
         // Deactivate previous lecturer status
-        lecturerStatusRepository.findByLecturerIdAndIsActive(lecturerId, true)
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
                 .ifPresent(status -> {
                     status.setIsActive(false);
                     lecturerStatusRepository.save(status);
@@ -75,9 +79,9 @@ public class RoomService {
 
         // Create new lecturer status
         LecturerStatus status = new LecturerStatus();
-        status.setLecturerId(lecturerId);
+        status.setLecturer(lecturer);
         status.setStatus(LecturerStatus.Status.TEACHING);
-        status.setCurrentRoomId(room.getId());
+        status.setCurrentRoom(room);
         status.setCustomMessage(request.getCustomMessage());
         status.setExpectedEndTime(request.getEndTime());
         status = lecturerStatusRepository.save(status);
@@ -96,7 +100,7 @@ public class RoomService {
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
         // Verify lecturer is currently occupying this room
-        if (!lecturerId.equals(room.getCurrentLecturerId())) {
+        if (room.getCurrentLecturer() == null || !lecturerId.equals(room.getCurrentLecturer().getId())) {
             throw new BadRequestException("You are not currently occupying this room");
         }
 
@@ -111,7 +115,7 @@ public class RoomService {
         roomRepository.save(room);
 
         // Update lecturer status
-        lecturerStatusRepository.findByLecturerIdAndIsActive(lecturerId, true)
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
                 .ifPresent(status -> {
                     status.setExpectedEndTime(request.getNewEndTime());
                     lecturerStatusRepository.save(status);
@@ -128,22 +132,22 @@ public class RoomService {
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
         // Verify lecturer is currently occupying this room
-        if (!lecturerId.equals(room.getCurrentLecturerId())) {
+        if (room.getCurrentLecturer() == null || !lecturerId.equals(room.getCurrentLecturer().getId())) {
             throw new BadRequestException("You are not currently occupying this room");
         }
 
         // Release room
         room.setStatus(Room.RoomStatus.AVAILABLE);
-        room.setCurrentLecturerId(null);
+        room.setCurrentLecturer(null);
         room.setOccupiedUntil(null);
         room.setStatusUpdatedAt(LocalDateTime.now());
         roomRepository.save(room);
 
         // Update lecturer status
-        lecturerStatusRepository.findByLecturerIdAndIsActive(lecturerId, true)
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
                 .ifPresent(status -> {
                     status.setStatus(LecturerStatus.Status.AVAILABLE);
-                    status.setCurrentRoomId(null);
+                    status.setCurrentRoom(null);
                     status.setExpectedEndTime(null);
                     lecturerStatusRepository.save(status);
                 });
@@ -165,15 +169,15 @@ public class RoomService {
         response.setStatus(room.getStatus().name());
 
         // Add lecturer info if occupied
-        if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturerId() != null) {
-            userRepository.findById(room.getCurrentLecturerId())
-                    .ifPresent(lecturer -> response.setCurrentLecturerName(lecturer.getName()));
+        if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() != null) {
+            User lecturer = room.getCurrentLecturer();
+            response.setCurrentLecturerName(lecturer.getName());
 
             response.setOccupiedUntil(room.getOccupiedUntil());
             response.setOccupiedSince(room.getStatusUpdatedAt());
 
             // Get occupation message
-            lecturerStatusRepository.findByLecturerIdAndIsActive(room.getCurrentLecturerId(), true)
+            lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true)
                     .ifPresent(status -> response.setOccupationMessage(status.getCustomMessage()));
         }
 

@@ -1,8 +1,11 @@
 package com.acpulse.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "semesters")
@@ -23,6 +26,11 @@ public class Semester {
     @Column(name = "is_current", nullable = false)
     private Boolean isCurrent = false;
 
+    // One-to-Many: Semester → LectureSchedule
+    @OneToMany(mappedBy = "semester", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<LectureSchedule> lectureSchedules = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -41,6 +49,9 @@ public class Semester {
 
     public Boolean getIsCurrent() { return isCurrent; }
     public void setIsCurrent(Boolean isCurrent) { this.isCurrent = isCurrent; }
+
+    public List<LectureSchedule> getLectureSchedules() { return lectureSchedules; }
+    public void setLectureSchedules(List<LectureSchedule> lectureSchedules) { this.lectureSchedules = lectureSchedules; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

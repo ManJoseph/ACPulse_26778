@@ -189,6 +189,19 @@ Content-Type: application/json
 }
 ```
 
+**Test Script:**
+```javascript
+pm.test("200 OK - Admin logged in", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.role).to.equal("ADMIN");
+  pm.expect(response.token).to.be.null;
+  pm.expect(response).to.have.property("userId");
+  pm.expect(response).to.have.property("name");
+  pm.expect(response).to.have.property("email");
+});
+```
+
 **Expected Result:** HTTP 200, Token = null, Role = ADMIN
 
 ---
@@ -229,7 +242,17 @@ Content-Type: application/json
 GET {{base_url}}/api/rooms/search?roomNumber=A-101
 ```
 
-**Expected Result:** HTTP 200, Room object returned
+**Test Script:**
+```javascript
+pm.test("200 OK - Room found", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.have.property("roomNumber");
+  pm.expect(response.roomNumber).to.equal("A-101");
+});
+```
+
+**Expected Result:** HTTP 200, Room object returned with roomNumber "A-101"
 
 ---
 
@@ -239,14 +262,24 @@ GET {{base_url}}/api/rooms/search?roomNumber=A-101
 GET {{base_url}}/api/rooms
 ```
 
-**Expected Result:** HTTP 200, Array of 6 room objects
+**Test Script:**
+```javascript
+pm.test("200 OK - Rooms retrieved", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+  pm.expect(response.length).to.be.greaterThan(0);
+});
+```
+
+**Expected Result:** HTTP 200, Array of room objects
 
 ---
 
 #### Test 18: Occupy Room
 
 ```http
-POST {{base_url}}/api/lecturer/occupy-room
+POST {{base_url}}/api/lecturer/occupy-room?lecturerId={{lecturer_id}}
 Content-Type: application/json
 ```
 
@@ -259,7 +292,20 @@ Content-Type: application/json
 }
 ```
 
-**Expected Result:** HTTP 200 — "Room occupied successfully"
+**Test Script:**
+```javascript
+pm.test("200 OK - Room occupied", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("Room occupied successfully");
+  // Store roomId for later tests
+  if (response.roomId) {
+    pm.collectionVariables.set("room_id", response.roomId);
+  }
+});
+```
+
+**Expected Result:** HTTP 200 — "Room occupied successfully", roomId returned in response
 
 ---
 
@@ -277,7 +323,16 @@ Content-Type: application/json
 }
 ```
 
-**Expected Result:** HTTP 200 — "Room occupation extended"
+**Test Script:**
+```javascript
+pm.test("200 OK - Room extended", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("Room occupation extended");
+});
+```
+
+**Expected Result:** HTTP 200 — "Room occupation extended until [newEndTime]"
 
 ---
 
@@ -285,6 +340,15 @@ Content-Type: application/json
 
 ```http
 POST {{base_url}}/api/lecturer/release-room/{{room_id}}?lecturerId={{lecturer_id}}
+```
+
+**Test Script:**
+```javascript
+pm.test("200 OK - Room released", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("Room released successfully");
+});
 ```
 
 **Expected Result:** HTTP 200 — "Room released successfully"
@@ -299,7 +363,21 @@ POST {{base_url}}/api/lecturer/release-room/{{room_id}}?lecturerId={{lecturer_id
 GET {{base_url}}/api/locations?type=PROVINCE
 ```
 
-**Expected Result:** HTTP 200, Array of 5 provinces
+**Test Script:**
+```javascript
+pm.test("200 OK - Locations by type", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+  pm.expect(response.length).to.be.greaterThan(0);
+  // Verify all locations are of type PROVINCE
+  response.forEach(location => {
+    pm.expect(location.type).to.equal("PROVINCE");
+  });
+});
+```
+
+**Expected Result:** HTTP 200, Array of province locations
 
 ---
 
@@ -309,7 +387,16 @@ GET {{base_url}}/api/locations?type=PROVINCE
 GET {{base_url}}/api/locations/1/children
 ```
 
-**Expected Result:** HTTP 200, Array of districts under Kigali
+**Test Script:**
+```javascript
+pm.test("200 OK - Location children", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+});
+```
+
+**Expected Result:** HTTP 200, Array of child locations
 
 ---
 
@@ -317,6 +404,17 @@ GET {{base_url}}/api/locations/1/children
 
 ```http
 GET {{base_url}}/api/locations/hierarchy/1
+```
+
+**Test Script:**
+```javascript
+pm.test("200 OK - Location hierarchy", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.have.property("current");
+  pm.expect(response).to.have.property("path");
+  pm.expect(response.path).to.be.an("array");
+});
 ```
 
 **Expected Result:** HTTP 200, Object containing `current` location and `path` array
@@ -331,6 +429,15 @@ GET {{base_url}}/api/locations/hierarchy/1
 GET {{base_url}}/api/lecturers/search?query=Test
 ```
 
+**Test Script:**
+```javascript
+pm.test("200 OK - Lecturers found", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+});
+```
+
 **Expected Result:** HTTP 200, Array of matching lecturers
 
 ---
@@ -341,7 +448,16 @@ GET {{base_url}}/api/lecturers/search?query=Test
 GET {{base_url}}/api/lecturers/status?lecturerId={{lecturer_id}}
 ```
 
-**Expected Result:** HTTP 200, Lecturer status object
+**Test Script:**
+```javascript
+pm.test("200 OK - Lecturer status", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.have.property("lecturerId");
+});
+```
+
+**Expected Result:** HTTP 200, Lecturer status object with lecturerId
 
 ---
 
@@ -360,6 +476,15 @@ Content-Type: application/json
 }
 ```
 
+**Test Script:**
+```javascript
+pm.test("200 OK - Status updated", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("Status updated successfully");
+});
+```
+
 **Expected Result:** HTTP 200 — "Status updated successfully"
 
 ---
@@ -372,6 +497,21 @@ Content-Type: application/json
 GET {{base_url}}/api/admin/verification-requests?status=PENDING
 ```
 
+**Test Script:**
+```javascript
+pm.test("200 OK - Verification requests", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+  // Verify request structure
+  if (response.length > 0) {
+    pm.expect(response[0]).to.have.property("requestId");
+    pm.expect(response[0]).to.have.property("userId");
+    pm.expect(response[0]).to.have.property("status");
+  }
+});
+```
+
 **Expected Result:** HTTP 200, Array of pending verification requests
 
 ---
@@ -382,7 +522,17 @@ GET {{base_url}}/api/admin/verification-requests?status=PENDING
 POST {{base_url}}/api/admin/verification-requests/1/approve?adminId={{admin_id}}
 ```
 
-**Expected Result:** HTTP 200 — "User approved successfully"
+**Test Script:**
+```javascript
+pm.test("200 OK - User approved", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("User approved successfully");
+  pm.expect(response).to.have.property("userId");
+});
+```
+
+**Expected Result:** HTTP 200 — "User approved successfully" with userId in response
 
 ---
 
@@ -400,7 +550,17 @@ Content-Type: application/json
 }
 ```
 
-**Expected Result:** HTTP 200 — "User rejected"
+**Test Script:**
+```javascript
+pm.test("200 OK - User rejected", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("User rejected");
+  pm.expect(response).to.have.property("userId");
+});
+```
+
+**Expected Result:** HTTP 200 — "User rejected" with userId in response
 
 ---
 
@@ -442,7 +602,29 @@ Content-Type: application/json
 GET {{base_url}}/api/notifications?userId={{student_id}}
 ```
 
+**Test Script:**
+```javascript
+pm.test("200 OK - Notifications retrieved", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.be.an("array");
+  // Verify notification structure
+  if (response.length > 0) {
+    pm.expect(response[0]).to.have.property("id");
+    pm.expect(response[0]).to.have.property("title");
+    pm.expect(response[0]).to.have.property("message");
+    pm.expect(response[0]).to.have.property("notificationType");
+    pm.expect(response[0]).to.have.property("isRead");
+    pm.expect(response[0]).to.have.property("createdAt");
+    // Notification includes user object (not userId)
+    pm.expect(response[0]).to.have.property("user");
+  }
+});
+```
+
 **Expected Result:** HTTP 200, Array of notification objects
+
+**Note:** Notification responses include a `user` object (containing user details) instead of just `userId`. This is expected behavior after the recent code refactoring.
 
 ---
 
@@ -450,6 +632,17 @@ GET {{base_url}}/api/notifications?userId={{student_id}}
 
 ```http
 GET {{base_url}}/api/notifications/unread-count?userId={{student_id}}
+```
+
+**Test Script:**
+```javascript
+pm.test("200 OK - Unread count", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response).to.have.property("count");
+  pm.expect(response.count).to.be.a("number");
+  pm.expect(response.count).to.be.at.least(0);
+});
 ```
 
 **Expected Result:** HTTP 200, Object containing unread count
@@ -467,6 +660,15 @@ GET {{base_url}}/api/notifications/unread-count?userId={{student_id}}
 
 ```http
 PUT {{base_url}}/api/notifications/1/read?userId={{student_id}}
+```
+
+**Test Script:**
+```javascript
+pm.test("200 OK - Notification marked as read", () => {
+  pm.response.to.have.status(200);
+  const response = pm.response.json();
+  pm.expect(response.message).to.include("Notification marked as read");
+});
 ```
 
 **Expected Result:** HTTP 200 — "Notification marked as read"
@@ -527,6 +729,18 @@ Each test includes validation scripts that:
 - Dynamic variables (`student_id`, `lecturer_id`, `room_id`) are automatically populated during test execution
 - Some tests require prior test completion (e.g., login requires registration and approval)
 - Timestamps in room occupation tests should be adjusted to current date/time for production testing
+
+### Recent Changes (2025)
+
+**API Updates:**
+- **Room Management**: All room occupation endpoints now require `lecturerId` as a query parameter
+- **Notifications**: Notification responses now include a full `user` object instead of just `userId`
+- **Repository Methods**: Internal repository methods updated to use JPA relationship syntax (e.g., `findByUser_Id()` instead of `findByUserId()`)
+
+**Test Updates:**
+- Test 18 (Occupy Room) now includes `lecturerId` query parameter and captures `roomId` from response
+- All tests now include comprehensive test scripts with proper assertions
+- Notification tests updated to verify the `user` object in responses
 
 ---
 

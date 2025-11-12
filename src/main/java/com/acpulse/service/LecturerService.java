@@ -18,9 +18,6 @@ public class LecturerService {
     @Autowired
     private LecturerStatusRepository lecturerStatusRepository;
 
-    @Autowired
-    private RoomRepository roomRepository;
-
     public List<Map<String, Object>> searchLecturers(String query) {
         List<User> lecturers = userRepository.findByNameContainingIgnoreCaseAndRole_RoleName(query, "LECTURER");
         List<Map<String, Object>> responses = new ArrayList<>();
@@ -34,21 +31,19 @@ public class LecturerService {
             response.put("phoneNumber", lecturer.getPhoneNumber());
 
             // Get current status
-            lecturerStatusRepository.findByLecturerIdAndIsActive(lecturer.getId(), true)
+            lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true)
                     .ifPresent(status -> {
                         response.put("currentStatus", status.getStatus().name());
                         response.put("statusMessage", status.getCustomMessage());
                         response.put("expectedAvailableTime", status.getExpectedEndTime());
 
                         // Add room info if teaching
-                        if (status.getCurrentRoomId() != null) {
-                            roomRepository.findById(status.getCurrentRoomId())
-                                    .ifPresent(room -> {
-                                        Map<String, Object> roomInfo = new HashMap<>();
-                                        roomInfo.put("roomNumber", room.getRoomNumber());
-                                        roomInfo.put("roomName", room.getRoomName());
-                                        response.put("currentRoom", roomInfo);
-                                    });
+                        if (status.getCurrentRoom() != null) {
+                            Room room = status.getCurrentRoom();
+                            Map<String, Object> roomInfo = new HashMap<>();
+                            roomInfo.put("roomNumber", room.getRoomNumber());
+                            roomInfo.put("roomName", room.getRoomName());
+                            response.put("currentRoom", roomInfo);
                         }
                     });
 
@@ -65,7 +60,7 @@ public class LecturerService {
         Map<String, Object> response = new HashMap<>();
         response.put("lecturerId", lecturer.getId());
 
-        lecturerStatusRepository.findByLecturerIdAndIsActive(lecturerId, true)
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
                 .ifPresent(status -> {
                     response.put("status", status.getStatus().name());
                     response.put("customMessage", status.getCustomMessage());
@@ -74,14 +69,12 @@ public class LecturerService {
                     response.put("isActive", status.getIsActive());
 
                     // Add room info if present
-                    if (status.getCurrentRoomId() != null) {
-                        roomRepository.findById(status.getCurrentRoomId())
-                                .ifPresent(room -> {
-                                    Map<String, String> roomInfo = new HashMap<>();
-                                    roomInfo.put("roomNumber", room.getRoomNumber());
-                                    roomInfo.put("roomName", room.getRoomName());
-                                    response.put("currentRoom", roomInfo);
-                                });
+                    if (status.getCurrentRoom() != null) {
+                        Room room = status.getCurrentRoom();
+                        Map<String, String> roomInfo = new HashMap<>();
+                        roomInfo.put("roomNumber", room.getRoomNumber());
+                        roomInfo.put("roomName", room.getRoomName());
+                        response.put("currentRoom", roomInfo);
                     }
                 });
 
@@ -90,8 +83,12 @@ public class LecturerService {
 
     @Transactional
     public Map<String, String> updateStatus(Integer lecturerId, UpdateStatusRequest request) {
+        // Get lecturer
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+
         // Deactivate previous status
-        lecturerStatusRepository.findByLecturerIdAndIsActive(lecturerId, true)
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
                 .ifPresent(status -> {
                     status.setIsActive(false);
                     lecturerStatusRepository.save(status);
@@ -99,7 +96,7 @@ public class LecturerService {
 
         // Create new status
         LecturerStatus status = new LecturerStatus();
-        status.setLecturerId(lecturerId);
+        status.setLecturer(lecturer);
         status.setStatus(LecturerStatus.Status.valueOf(request.getStatus().toUpperCase()));
         status.setCustomMessage(request.getCustomMessage());
         lecturerStatusRepository.save(status);

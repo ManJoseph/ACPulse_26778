@@ -10,5 +10,5 @@ public interface RoomRepository extends JpaRepository<Room, Integer> {
     Optional<Room> findByRoomNumber(String roomNumber);
     List<Room> findByStatus(Room.RoomStatus status);
     List<Room> findByStatusAndOccupiedUntilBefore(Room.RoomStatus status, LocalDateTime time);
-    List<Room> findByCurrentLecturerId(Integer lecturerId);
+    List<Room> findByCurrentLecturer_Id(Integer lecturerId);
 }

@@ -4,7 +4,6 @@ import com.acpulse.dto.request.LoginRequest;
 import com.acpulse.dto.request.RegisterRequest;
 import com.acpulse.dto.response.AuthResponse;
 import com.acpulse.exception.BadRequestException;
-import com.acpulse.exception.UnauthorizedException;
 import com.acpulse.model.*;
 import com.acpulse.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +74,7 @@ public class AuthService {
 
         // Create verification request
         VerificationRequest verificationRequest = new VerificationRequest();
-        verificationRequest.setUserId(user.getId());
+        verificationRequest.setUser(user);
         verificationRequest.setSubmittedId(request.getIdentificationNumber());
         verificationRequest.setRequestType(VerificationRequest.RequestType.valueOf(request.getRoleType().toUpperCase()));
         verificationRequestRepository.save(verificationRequest);

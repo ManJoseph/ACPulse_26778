@@ -150,7 +150,7 @@ public class DataInitializer implements CommandLineRunner {
             gasabo.setName("Gasabo");
             gasabo.setCode("GSB");
             gasabo.setType(Location.LocationType.DISTRICT);
-            gasabo.setParentId(kigali.getId());
+            gasabo.setParent(kigali);
             gasabo.setCreatedAt(LocalDateTime.now());
             locationRepository.save(gasabo);
 
@@ -158,7 +158,7 @@ public class DataInitializer implements CommandLineRunner {
             kicukiro.setName("Kicukiro");
             kicukiro.setCode("KCK");
             kicukiro.setType(Location.LocationType.DISTRICT);
-            kicukiro.setParentId(kigali.getId());
+            kicukiro.setParent(kigali);
             kicukiro.setCreatedAt(LocalDateTime.now());
             locationRepository.save(kicukiro);
 
@@ -166,7 +166,7 @@ public class DataInitializer implements CommandLineRunner {
             nyarugenge.setName("Nyarugenge");
             nyarugenge.setCode("NYR");
             nyarugenge.setType(Location.LocationType.DISTRICT);
-            nyarugenge.setParentId(kigali.getId());
+            nyarugenge.setParent(kigali);
             nyarugenge.setCreatedAt(LocalDateTime.now());
             locationRepository.save(nyarugenge);
 

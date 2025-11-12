@@ -4,7 +4,6 @@ import com.acpulse.model.Notification;
 import com.acpulse.model.Room;
 import com.acpulse.model.User;
 import com.acpulse.repository.RoomRepository;
-import com.acpulse.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -17,9 +16,6 @@ public class ScheduledTaskService {
 
     @Autowired
     private RoomRepository roomRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private NotificationService notificationService;
@@ -37,18 +33,17 @@ public class ScheduledTaskService {
         );
 
         for (Room room : expiredRooms) {
-            if (room.getCurrentLecturerId() != null) {
-                userRepository.findById(room.getCurrentLecturerId()).ifPresent(lecturer -> {
-                    // Send notification
-                    notificationService.createNotification(
-                            lecturer.getId(),
-                            "Room Occupation Expired",
-                            "Your occupation of Room " + room.getRoomNumber() +
-                                    " expired at " + room.getOccupiedUntil() +
-                                    ". Please extend if still needed or release the room.",
-                            Notification.NotificationType.ROOM_EXPIRY
-                    );
-                });
+            if (room.getCurrentLecturer() != null) {
+                User lecturer = room.getCurrentLecturer();
+                // Send notification
+                notificationService.createNotification(
+                        lecturer.getId(),
+                        "Room Occupation Expired",
+                        "Your occupation of Room " + room.getRoomNumber() +
+                                " expired at " + room.getOccupiedUntil() +
+                                ". Please extend if still needed or release the room.",
+                        Notification.NotificationType.ROOM_EXPIRY
+                );
             }
         }
     }

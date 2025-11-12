@@ -33,7 +33,8 @@ public class AdminService {
         List<Map<String, Object>> responses = new ArrayList<>();
 
         for (VerificationRequest request : requests) {
-            userRepository.findById(request.getUserId()).ifPresent(user -> {
+            User user = request.getUser();
+            if (user != null) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("requestId", request.getId());
                 response.put("userId", user.getId());
@@ -52,7 +53,7 @@ public class AdminService {
                 }
 
                 responses.add(response);
-            });
+            }
         }
 
         return responses;
@@ -63,8 +64,10 @@ public class AdminService {
         VerificationRequest request = verificationRequestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Verification request not found"));
 
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User user = request.getUser();
+        if (user == null) {
+            throw new NotFoundException("User not found");
+        }
 
         // Update verification request
         request.setStatus(VerificationRequest.Status.APPROVED);
@@ -104,8 +107,10 @@ public class AdminService {
         VerificationRequest request = verificationRequestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Verification request not found"));
 
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User user = request.getUser();
+        if (user == null) {
+            throw new NotFoundException("User not found");
+        }
 
         // Update verification request
         request.setStatus(VerificationRequest.Status.REJECTED);

@@ -1,6 +1,9 @@
 package com.acpulse.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "roles")
@@ -13,6 +16,11 @@ public class Role {
     private String roleName;
 
     private String description;
+
+    // One-to-Many: Role → User
+    @OneToMany(mappedBy = "role", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<User> users = new ArrayList<>();
 
     // Constructors
     public Role() {}
@@ -30,4 +38,8 @@ public class Role {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    // Relationship getters and setters
+    public List<User> getUsers() { return users; }
+    public void setUsers(List<User> users) { this.users = users; }
 }

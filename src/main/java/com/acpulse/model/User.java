@@ -1,7 +1,10 @@
 package com.acpulse.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -16,6 +19,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    // I will apply hashing algorithm after
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -47,6 +51,37 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // One-to-Many: User → LecturerStatus
+    @OneToMany(mappedBy = "lecturer", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<LecturerStatus> lecturerStatuses = new ArrayList<>();
+
+    // One-to-Many: User → VerificationRequest
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<VerificationRequest> verificationRequests = new ArrayList<>();
+
+    // One-to-Many: User → Notification
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<Notification> notifications = new ArrayList<>();
+
+    // One-to-Many: User → Room (as currentLecturer)
+    @OneToMany(mappedBy = "currentLecturer", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Room> occupiedRooms = new ArrayList<>();
+
+    // One-to-Many: User → LectureSchedule
+    @OneToMany(mappedBy = "lecturer", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<LectureSchedule> lectureSchedules = new ArrayList<>();
+
+    // One-to-One: User → Office (for staff)
+    @OneToOne(mappedBy = "staffUser", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private Office office;
+
+    // enum for a user status after applying to use the system
     public enum UserStatus {
         PENDING, APPROVED, REJECTED
     }
@@ -89,4 +124,23 @@ public class User {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    // Relationship getters and setters
+    public List<LecturerStatus> getLecturerStatuses() { return lecturerStatuses; }
+    public void setLecturerStatuses(List<LecturerStatus> lecturerStatuses) { this.lecturerStatuses = lecturerStatuses; }
+
+    public List<VerificationRequest> getVerificationRequests() { return verificationRequests; }
+    public void setVerificationRequests(List<VerificationRequest> verificationRequests) { this.verificationRequests = verificationRequests; }
+
+    public List<Notification> getNotifications() { return notifications; }
+    public void setNotifications(List<Notification> notifications) { this.notifications = notifications; }
+
+    public List<Room> getOccupiedRooms() { return occupiedRooms; }
+    public void setOccupiedRooms(List<Room> occupiedRooms) { this.occupiedRooms = occupiedRooms; }
+
+    public List<LectureSchedule> getLectureSchedules() { return lectureSchedules; }
+    public void setLectureSchedules(List<LectureSchedule> lectureSchedules) { this.lectureSchedules = lectureSchedules; }
+
+    public Office getOffice() { return office; }
+    public void setOffice(Office office) { this.office = office; }
 }

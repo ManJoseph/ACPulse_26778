@@ -1,7 +1,10 @@
 package com.acpulse.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "rooms")
@@ -31,12 +34,23 @@ public class Room {
     @Column(nullable = false)
     private RoomStatus status = RoomStatus.AVAILABLE;
 
-    // ManyToOne: Room → User (unidirectional, current lecturer)
-    @Column(name = "current_lecturer_id")
-    private Integer currentLecturerId;
+    // Many-to-One: Room → User (current lecturer)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_lecturer_id")
+    private User currentLecturer;
 
     @Column(name = "occupied_until")
     private LocalDateTime occupiedUntil;
+
+    // One-to-Many: Room → LecturerStatus
+    @OneToMany(mappedBy = "currentRoom", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<LecturerStatus> lecturerStatuses = new ArrayList<>();
+
+    // One-to-Many: Room → LectureSchedule
+    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<LectureSchedule> lectureSchedules = new ArrayList<>();
 
     @Column(name = "status_updated_at")
     private LocalDateTime statusUpdatedAt;
@@ -77,15 +91,19 @@ public class Room {
     public RoomStatus getStatus() { return status; }
     public void setStatus(RoomStatus status) { this.status = status; }
 
-    public Integer getCurrentLecturerId() { return currentLecturerId; }
-    public void setCurrentLecturerId(Integer currentLecturerId) {
-        this.currentLecturerId = currentLecturerId;
-    }
+    public User getCurrentLecturer() { return currentLecturer; }
+    public void setCurrentLecturer(User currentLecturer) { this.currentLecturer = currentLecturer; }
 
     public LocalDateTime getOccupiedUntil() { return occupiedUntil; }
     public void setOccupiedUntil(LocalDateTime occupiedUntil) {
         this.occupiedUntil = occupiedUntil;
     }
+
+    public List<LecturerStatus> getLecturerStatuses() { return lecturerStatuses; }
+    public void setLecturerStatuses(List<LecturerStatus> lecturerStatuses) { this.lecturerStatuses = lecturerStatuses; }
+
+    public List<LectureSchedule> getLectureSchedules() { return lectureSchedules; }
+    public void setLectureSchedules(List<LectureSchedule> lectureSchedules) { this.lectureSchedules = lectureSchedules; }
 
     public LocalDateTime getStatusUpdatedAt() { return statusUpdatedAt; }
     public void setStatusUpdatedAt(LocalDateTime statusUpdatedAt) {

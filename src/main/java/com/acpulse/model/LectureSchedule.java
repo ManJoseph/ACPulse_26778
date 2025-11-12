@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+// this is all about keeping all information about a lecturer's information.
 @Entity
 @Table(name = "lecture_schedules")
 public class LectureSchedule {
@@ -11,17 +12,20 @@ public class LectureSchedule {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // ManyToOne: LectureSchedule → User (unidirectional)
-    @Column(name = "lecturer_id", nullable = false)
-    private Integer lecturerId;
+    // Many-to-One: LectureSchedule → User (lecturer)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lecturer_id", nullable = false)
+    private User lecturer;
 
-    // ManyToOne: LectureSchedule → Room (unidirectional)
-    @Column(name = "room_id", nullable = false)
-    private Integer roomId;
+    // Many-to-One: LectureSchedule → Room
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
 
-    // ManyToOne: LectureSchedule → Semester (unidirectional)
-    @Column(name = "semester_id", nullable = false)
-    private Integer semesterId;
+    // Many-to-One: LectureSchedule → Semester
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id", nullable = false)
+    private Semester semester;
 
     @Column(name = "course_code")
     private String courseCode;
@@ -53,14 +57,14 @@ public class LectureSchedule {
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Integer getLecturerId() { return lecturerId; }
-    public void setLecturerId(Integer lecturerId) { this.lecturerId = lecturerId; }
+    public User getLecturer() { return lecturer; }
+    public void setLecturer(User lecturer) { this.lecturer = lecturer; }
 
-    public Integer getRoomId() { return roomId; }
-    public void setRoomId(Integer roomId) { this.roomId = roomId; }
+    public Room getRoom() { return room; }
+    public void setRoom(Room room) { this.room = room; }
 
-    public Integer getSemesterId() { return semesterId; }
-    public void setSemesterId(Integer semesterId) { this.semesterId = semesterId; }
+    public Semester getSemester() { return semester; }
+    public void setSemester(Semester semester) { this.semester = semester; }
 
     public String getCourseCode() { return courseCode; }
     public void setCourseCode(String courseCode) { this.courseCode = courseCode; }

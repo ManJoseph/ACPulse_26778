@@ -21,9 +21,10 @@ public class Office {
 
     private String floor;
 
-    // ManyToOne: Office → User (unidirectional, staff)
-    @Column(name = "staff_user_id")
-    private Integer staffUserId;
+    // One-to-One: Office → User (staff)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_user_id", unique = true)
+    private User staffUser;
 
     private String department;
 
@@ -66,8 +67,8 @@ public class Office {
     public String getFloor() { return floor; }
     public void setFloor(String floor) { this.floor = floor; }
 
-    public Integer getStaffUserId() { return staffUserId; }
-    public void setStaffUserId(Integer staffUserId) { this.staffUserId = staffUserId; }
+    public User getStaffUser() { return staffUser; }
+    public void setStaffUser(User staffUser) { this.staffUser = staffUser; }
 
     public String getDepartment() { return department; }
     public void setDepartment(String department) { this.department = department; }

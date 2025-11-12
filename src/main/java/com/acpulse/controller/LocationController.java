@@ -26,7 +26,7 @@ public class LocationController {
 
     @GetMapping("/{id}/children")
     public ResponseEntity<List<Location>> getChildren(@PathVariable Integer id) {
-        List<Location> children = locationRepository.findByParentId(id);
+        List<Location> children = locationRepository.findByParent_Id(id);
         return ResponseEntity.ok(children);
     }
 
@@ -49,8 +49,10 @@ public class LocationController {
             node.put("type", current.getType().name());
             path.add(0, node);
 
-            if (current.getParentId() != null) {
-                current = locationRepository.findById(current.getParentId()).orElse(null);
+            Location parent = current.getParent();
+            if (parent != null) {
+                // Reload from repository to ensure parent is fully loaded
+                current = locationRepository.findById(parent.getId()).orElse(null);
             } else {
                 current = null;
             }
