@@ -1,0 +1,9 @@
+export { default as authService } from './authService';
+export { default as roomService } from './roomService';
+export { default as lecturerService } from './lecturerService';
+export { default as adminService } from './adminService';
+export { default as notificationService } from './notificationService';
+export { default as locationService } from './locationService';
+export { default as staffService } from './staffService';
+export { default as userService } from './userService';
+export { default as api } from './api';
