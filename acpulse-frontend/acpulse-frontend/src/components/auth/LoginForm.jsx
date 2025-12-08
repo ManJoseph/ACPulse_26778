@@ -21,7 +21,7 @@ const LoginForm = () => {
   const onSubmit = async (data) => {
     try {
       const response = await authService.login(data);
-      login(response, response.token); // The second 'token' parameter might be 'response.token' depending on your API
+      login(response); // Pass the entire response object to the store
       toast.success(`Welcome back, ${response.name}!`);
       navigate('/dashboard');
     } catch (error) {

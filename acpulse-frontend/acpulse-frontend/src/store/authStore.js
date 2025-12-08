@@ -1,25 +1,24 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Get the initial user data from localStorage if it exists
-const initialUser = JSON.parse(localStorage.getItem('user')) || null;
-const initialToken = localStorage.getItem('token') || null;
-
 export const useAuthStore = create(
   persist(
     (set) => ({
-      user: initialUser,
-      token: initialToken,
-      isAuthenticated: !!initialToken,
+      // The initial state should be empty.
+      // `persist` middleware will rehydrate it from localStorage on load.
+      user: null,
+      token: null,
+      isAuthenticated: false,
 
       // --- ACTIONS ---
 
-      // Set user and token after successful login
-      login: (userData, token) => {
-        // Also update the plain localStorage for immediate access if needed
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', token);
-
+      /**
+       * Sets user and token after successful login.
+       * The `authResponse` is the data object received from the backend API.
+       * @param {object} authResponse - The response from the /api/auth/login endpoint.
+       */
+      login: (authResponse) => {
+        const { token, ...userData } = authResponse;
         set({
           user: userData,
           token: token,
@@ -29,10 +28,7 @@ export const useAuthStore = create(
 
       // Clear user and token on logout
       logout: () => {
-        // Clear localStorage
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-
+        // Just update the state. The `persist` middleware will clear the storage.
         set({
           user: null,
           token: null,
@@ -42,13 +38,13 @@ export const useAuthStore = create(
 
       // Update user information (e.g., after profile update)
       setUser: (userData) => {
-        localStorage.setItem('user', JSON.stringify(userData));
-        set({ user: userData });
+        set((state) => ({
+          user: { ...state.user, ...userData },
+        }));
       },
     }),
     {
       name: 'auth-storage', // name of the item in the storage (must be unique)
-      getStorage: () => localStorage, // (optional) by default, 'localStorage' is used
     }
   )
 );
