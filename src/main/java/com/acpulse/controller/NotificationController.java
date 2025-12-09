@@ -29,6 +29,12 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
+    @PutMapping("/read/all")
+    public ResponseEntity<Map<String, String>> markAllAsRead(@RequestParam Integer userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok(Map.of("message", "All notifications marked as read"));
+    }
+
     //  Mark a specific notification as read
     @PutMapping("/{id}/read")
     public ResponseEntity<Map<String, String>> markAsRead(

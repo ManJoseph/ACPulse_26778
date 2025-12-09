@@ -11,4 +11,5 @@ public interface RoomRepository extends JpaRepository<Room, Integer> {
     List<Room> findByStatus(Room.RoomStatus status);
     List<Room> findByStatusAndOccupiedUntilBefore(Room.RoomStatus status, LocalDateTime time);
     List<Room> findByCurrentLecturer_Id(Integer lecturerId);
+    long countByStatus(Room.RoomStatus status);
 }

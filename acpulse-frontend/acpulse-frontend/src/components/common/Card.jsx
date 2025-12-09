@@ -44,24 +44,24 @@ const Card = ({
     className
   );
 
-  const CardWrapper = clickable || onClick ? motion.div : 'div';
-
-  const motionProps = clickable || onClick
-    ? {
-        whileHover: { y: -4 },
-        whileTap: { scale: 0.98 },
-      }
-    : {};
+  if (clickable || onClick) {
+    return (
+      <motion.div
+        className={cardClasses}
+        onClick={onClick}
+        whileHover={{ y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        {...props}
+      >
+        {children}
+      </motion.div>
+    );
+  }
 
   return (
-    <CardWrapper
-      className={cardClasses}
-      onClick={onClick}
-      {...motionProps}
-      {...props}
-    >
+    <div className={cardClasses} onClick={onClick} {...props}>
       {children}
-    </CardWrapper>
+    </div>
   );
 };
 

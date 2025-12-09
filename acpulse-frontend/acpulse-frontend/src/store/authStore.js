@@ -19,6 +19,9 @@ export const useAuthStore = create(
        */
       login: (authResponse) => {
         const { token, ...userData } = authResponse;
+        // Store token in both state and localStorage for redundancy
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
         set({
           user: userData,
           token: token,
@@ -28,6 +31,9 @@ export const useAuthStore = create(
 
       // Clear user and token on logout
       logout: () => {
+        // Clear localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         // Just update the state. The `persist` middleware will clear the storage.
         set({
           user: null,
@@ -38,6 +44,7 @@ export const useAuthStore = create(
 
       // Update user information (e.g., after profile update)
       setUser: (userData) => {
+        localStorage.setItem('user', JSON.stringify(userData));
         set((state) => ({
           user: { ...state.user, ...userData },
         }));
@@ -45,6 +52,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'auth-storage', // name of the item in the storage (must be unique)
+      getStorage: () => localStorage, // explicitly use localStorage
     }
   )
 );
@@ -56,3 +64,4 @@ export const useCurrentUser = () => useAuthStore((state) => state.user);
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
 
 export default useAuthStore;
+

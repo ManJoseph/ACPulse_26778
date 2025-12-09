@@ -43,6 +43,15 @@ public class NotificationService {
     }
 
     @Transactional
+    public void markAllAsRead(Integer userId) {
+        notificationRepository.findByUser_IdAndIsRead(userId, false)
+                .forEach(notification -> {
+                    notification.setIsRead(true);
+                    notification.setReadAt(LocalDateTime.now());
+                });
+    }
+
+    @Transactional
     public void markAsRead(Integer notificationId, Integer userId) {
         notificationRepository.findById(notificationId).ifPresent(notification -> {
             if (notification.getUser() != null && notification.getUser().getId().equals(userId)) {

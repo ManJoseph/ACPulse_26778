@@ -20,6 +20,9 @@ public class ScheduledTaskService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private EmailService emailService;
+
     @Scheduled(fixedRate = 60000) // Run every 60 seconds
     @Transactional
     public void checkExpiredOccupations() {
@@ -44,6 +47,14 @@ public class ScheduledTaskService {
                                 ". Please extend if still needed or release the room.",
                         Notification.NotificationType.ROOM_EXPIRY
                 );
+                
+                // Send email notification
+                try {
+                    emailService.sendRoomExpiryNotification(lecturer, room.getRoomNumber());
+                } catch (Exception e) {
+                    // Log but don't fail - email sending is optional
+                    System.err.println("Failed to send email notification: " + e.getMessage());
+                }
             }
         }
     }

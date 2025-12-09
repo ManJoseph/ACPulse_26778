@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/locations")
@@ -15,19 +16,42 @@ public class LocationController {
     private LocationRepository locationRepository;
 
     @GetMapping
-    public ResponseEntity<List<Location>> getLocations(
+    public ResponseEntity<List<Map<String, Object>>> getLocations(
             @RequestParam(required = false) String type) {
+        List<Location> locations;
         if (type != null) {
             Location.LocationType locationType = Location.LocationType.valueOf(type.toUpperCase());
-            return ResponseEntity.ok(locationRepository.findByType(locationType));
+            locations = locationRepository.findByType(locationType);
+        } else {
+            locations = locationRepository.findAll();
         }
-        return ResponseEntity.ok(locationRepository.findAll());
+
+        List<Map<String, Object>> simplifiedLocations = locations.stream()
+                .map(loc -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", loc.getId());
+                    map.put("name", loc.getName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(simplifiedLocations);
     }
 
     @GetMapping("/{id}/children")
-    public ResponseEntity<List<Location>> getChildren(@PathVariable Integer id) {
+    public ResponseEntity<List<Map<String, Object>>> getChildren(@PathVariable Integer id) {
         List<Location> children = locationRepository.findByParent_Id(id);
-        return ResponseEntity.ok(children);
+        
+        List<Map<String, Object>> simplifiedChildren = children.stream()
+                .map(loc -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", loc.getId());
+                    map.put("name", loc.getName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(simplifiedChildren);
     }
 
     @GetMapping("/hierarchy/{id}")

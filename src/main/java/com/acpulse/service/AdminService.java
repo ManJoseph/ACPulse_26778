@@ -19,10 +19,28 @@ public class AdminService {
     private UserRepository userRepository;
 
     @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
     private NotificationService notificationService;
 
     @Autowired
     private EmailService emailService;
+
+    public Map<String, Object> getStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        long totalUsers = userRepository.count();
+        long pendingVerifications = verificationRequestRepository.countByStatus(VerificationRequest.Status.PENDING);
+        long occupiedRooms = roomRepository.countByStatus(Room.RoomStatus.OCCUPIED);
+
+        stats.put("totalUsers", totalUsers);
+        stats.put("pendingVerifications", pendingVerifications);
+        stats.put("occupiedRooms", occupiedRooms);
+        stats.put("systemHealth", "Good"); // Placeholder value
+
+        return stats;
+    }
 
     public List<Map<String, Object>> getVerificationRequests(String status) {
         VerificationRequest.Status requestStatus = status != null ?

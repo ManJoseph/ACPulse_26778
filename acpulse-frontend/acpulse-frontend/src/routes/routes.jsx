@@ -39,24 +39,27 @@ export const AppRouter = () => {
     },
 
     // --- Protected Routes ---
-    // Authenticated users are directed here, rendered within the main layout.
+    // Authenticated users are directed here.
     {
-      element: (
-        <MainLayout>
-          <ProtectedRoute />
-        </MainLayout>
-      ),
+      element: <ProtectedRoute />, // The gatekeeper for all authenticated routes
       children: [
-        { path: '/dashboard', element: <Dashboard /> },
-        { path: '/rooms', element: <Rooms /> },
-        { path: '/lecturers', element: <Lecturers /> },
-        { path: '/profile', element: <Profile /> },
-        { path: '/notifications', element: <Notifications /> },
         {
-          path: 'admin',
+          element: <MainLayout />, // The UI layout for all pages inside
           children: [
-            { path: 'verifications', element: <VerificationRequests /> },
-            { path: 'users', element: <UserManagement /> },
+            { path: 'dashboard', element: <Dashboard /> },
+            { path: 'rooms', element: <Rooms /> },
+            { path: 'lecturers', element: <Lecturers /> },
+            { path: 'profile', element: <Profile /> },
+            { path: 'notifications', element: <Notifications /> },
+            {
+              path: 'admin',
+              children: [
+                { path: 'verifications', element: <VerificationRequests /> },
+                { path: 'users', element: <UserManagement /> },
+              ],
+            },
+            // Redirect authenticated users from the root path to their dashboard
+            { path: '/', element: <Navigate to="/dashboard" replace /> },
           ],
         },
       ],

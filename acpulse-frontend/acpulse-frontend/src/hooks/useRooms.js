@@ -16,8 +16,8 @@ const useRooms = (initialFilters = {}) => {
   );
 
   return {
-    rooms: data?.content || [],
-    page: data,
+    rooms: data || [],
+    page: null, // backend returns list, not paginated
     isLoading,
     isFetching,
     error,

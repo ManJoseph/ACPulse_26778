@@ -46,6 +46,13 @@ const Avatar = ({
 
   const AvatarWrapper = onClick ? motion.button : 'div';
 
+  const motionProps = onClick 
+    ? {
+        whileHover: { scale: 1.05 },
+        whileTap: { scale: 0.95 },
+      }
+    : {};
+
   return (
     <AvatarWrapper
       className={cn(
@@ -55,8 +62,7 @@ const Avatar = ({
         className
       )}
       onClick={onClick}
-      whileHover={onClick ? { scale: 1.05 } : {}}
-      whileTap={onClick ? { scale: 0.95 } : {}}
+      {...motionProps}
       {...props}
     >
       {src ? (

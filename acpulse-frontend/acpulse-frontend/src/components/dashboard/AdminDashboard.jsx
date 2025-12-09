@@ -31,22 +31,34 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 setIsLoading(true);
+                setError(null);
                 const data = await adminService.getDashboardStats();
                 setStats(data);
             } catch (error) {
-                toast.error('Failed to load dashboard statistics.');
-                console.error(error);
+                console.error('Dashboard error:', error);
+                
+                // Check for specific error status
+                if (error.response?.status === 403) {
+                    setError('You do not have permission to access admin features. Please ensure you are logged in as an admin.');
+                } else if (error.response?.status === 401) {
+                    toast.error('Your session has expired. Please log in again.');
+                    navigate('/login');
+                } else {
+                    setError('Failed to load dashboard statistics. Please try again later.');
+                    toast.error('Failed to load dashboard statistics.');
+                }
             } finally {
                 setIsLoading(false);
             }
         };
         fetchStats();
-    }, []);
+    }, [navigate]);
 
   return (
     <motion.div
@@ -61,6 +73,16 @@ const AdminDashboard = () => {
                 System overview and management.
             </p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p className="text-red-800 dark:text-red-200">{error}</p>
+                <p className="text-sm text-red-600 dark:text-red-300 mt-2">
+                    Debug: Ensure the backend API is running and your user account has the ADMIN role.
+                </p>
+            </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

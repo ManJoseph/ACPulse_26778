@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sun, Moon, Bell, User, LogOut, ChevronDown, Search } from 'lucide-react';
+import { Sun, Moon, Bell, User, LogOut, ChevronDown, Search, Menu } from 'lucide-react';
 import { useUIStore } from '../../store';
 import { useAuthStore } from '../../store';
 import { cn } from '../../utils/helpers';

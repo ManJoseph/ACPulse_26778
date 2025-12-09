@@ -7,15 +7,14 @@ const roomService = {
     return response.data;
   },
 
-  // Get all rooms
-  getAllRooms: async (filters = {}) => {
-    const { searchTerm, status, page, size } = filters;
+  // Get all rooms (backend returns a simple array)
+  getRooms: async (filters = {}) => {
+    const { searchTerm, status } = filters;
     const params = new URLSearchParams();
     if (searchTerm) params.append('search', searchTerm);
     if (status) params.append('status', status);
-    if (page) params.append('page', page);
-    if (size) params.append('size', size);
-    
+
+    // Backend currently returns a plain list, not paginated
     const response = await api.get(`/rooms?${params.toString()}`);
     return response.data;
   },

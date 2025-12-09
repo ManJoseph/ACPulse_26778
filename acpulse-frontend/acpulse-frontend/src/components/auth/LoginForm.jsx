@@ -25,6 +25,7 @@ const LoginForm = () => {
       toast.success(`Welcome back, ${response.name}!`);
       navigate('/dashboard');
     } catch (error) {
+      console.error('Login failed with error:', error); // Enhanced error logging
       const errorMessage = error.message || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
       setError('root.serverError', {

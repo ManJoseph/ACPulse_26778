@@ -16,7 +16,21 @@ const authService = {
       const response = await api.post('/auth/login', credentials);
       return response.data;
     } catch (error) {
-      throw error.response.data || error;
+      // Handle network errors
+      if (!error.response) {
+        if (error.request) {
+          // Request made but no response received
+          throw new Error('No response from server. Please check your network connection or ensure the backend is running.');
+        } else {
+          // Error in request setup
+          throw new Error(error.message || 'An error occurred while setting up the request.');
+        }
+      }
+      
+      // Handle HTTP error responses
+      const errorData = error.response.data;
+      const errorMessage = errorData?.message || errorData?.error || 'Login failed. Please try again.';
+      throw new Error(errorMessage);
     }
   },
 
@@ -30,7 +44,17 @@ const authService = {
       const response = await api.post('/auth/register', userData);
       return response.data;
     } catch (error) {
-      throw error.response.data || error;
+      if (!error.response) {
+        if (error.request) {
+          throw new Error('No response from server. Please check your network connection or ensure the backend is running.');
+        } else {
+          throw new Error(error.message || 'An error occurred while setting up the request.');
+        }
+      }
+      
+      const errorData = error.response.data;
+      const errorMessage = errorData?.message || errorData?.error || 'Registration failed. Please try again.';
+      throw new Error(errorMessage);
     }
   },
 
@@ -41,12 +65,19 @@ const authService = {
    */
   forgotPassword: async (email) => {
     try {
-      // Note: The backend endpoint for this needs to be created.
-      // This is a hypothetical implementation.
       const response = await api.post('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
-      throw error.response.data || error;
+      if (!error.response) {
+        if (error.request) {
+          throw new Error('No response from server. Please check your network connection.');
+        } else {
+          throw new Error(error.message || 'An error occurred.');
+        }
+      }
+      
+      const errorData = error.response.data;
+      throw new Error(errorData?.message || 'Failed to send reset link.');
     }
   },
 
@@ -58,26 +89,41 @@ const authService = {
    */
   resetPassword: async (token, newPassword) => {
     try {
-      // Note: The backend endpoint for this needs to be created.
       const response = await api.post('/auth/reset-password', { token, newPassword });
       return response.data;
     } catch (error) {
-      throw error.response.data || error;
+      if (!error.response) {
+        if (error.request) {
+          throw new Error('No response from server. Please check your network connection.');
+        } else {
+          throw new Error(error.message || 'An error occurred.');
+        }
+      }
+      
+      const errorData = error.response.data;
+      throw new Error(errorData?.message || 'Failed to reset password.');
     }
   },
 
   /**
    * Fetches the current user's profile information.
-   * Useful for re-validating a session on app load.
    * @returns {Promise<object>} The user's profile data.
    */
   getProfile: async () => {
     try {
-      // This endpoint might need to be created on the backend (e.g., GET /api/users/me)
       const response = await api.get('/profile');
       return response.data;
     } catch (error) {
-      throw error.response.data || error;
+      if (!error.response) {
+        if (error.request) {
+          throw new Error('No response from server. Please check your network connection.');
+        } else {
+          throw new Error(error.message || 'An error occurred.');
+        }
+      }
+      
+      const errorData = error.response.data;
+      throw new Error(errorData?.message || 'Failed to fetch profile.');
     }
   },
 };

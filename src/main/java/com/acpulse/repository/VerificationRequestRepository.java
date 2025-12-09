@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface VerificationRequestRepository extends JpaRepository<VerificationRequest, Integer> {
     List<VerificationRequest> findByStatus(VerificationRequest.Status status);
     Optional<VerificationRequest> findByUser_Id(Integer userId);
+    long countByStatus(VerificationRequest.Status status);
 }

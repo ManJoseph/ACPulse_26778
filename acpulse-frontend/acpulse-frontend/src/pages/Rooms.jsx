@@ -69,11 +69,13 @@ const Rooms = () => {
               <RoomCard key={room.id} room={room} />
             ))}
           </div>
-          <Pagination
-            currentPage={page?.number}
-            totalPages={page?.totalPages}
-            onPageChange={handlePageChange}
-          />
+          {page && (
+            <Pagination
+              currentPage={page?.number}
+              totalPages={page?.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </>
       )}
     </div>

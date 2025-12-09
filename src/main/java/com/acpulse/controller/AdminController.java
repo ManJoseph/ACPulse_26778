@@ -3,6 +3,7 @@ package com.acpulse.controller;
 import com.acpulse.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,13 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getStats() {
+        Map<String, Object> stats = adminService.getStats();
+        return ResponseEntity.ok(stats);
+    }
 
     //  Get all verification requests (filter by status)
     @GetMapping("/verification-requests")
