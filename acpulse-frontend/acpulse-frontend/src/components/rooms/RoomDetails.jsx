@@ -21,13 +21,14 @@ const RoomDetails = () => {
     const [extendModalOpen, setExtendModalOpen] = useState(false);
     const [releaseModalOpen, setReleaseModalOpen] = useState(false);
 
-    const { data: room, isLoading, error } = useQuery(
-        ['room', roomId],
-        () => roomService.getRoomById(roomId)
-    );
+    const { data: room, isLoading, error } = useQuery({
+        queryKey: ['room', roomId],
+        queryFn: () => roomService.getRoomById(roomId)
+    });
 
     // --- Mutations ---
-    const occupyMutation = useMutation(roomService.occupyRoom, {
+    const occupyMutation = useMutation({
+        mutationFn: roomService.occupyRoom,
         onSuccess: () => {
             toast.success('Room occupied successfully!');
             queryClient.invalidateQueries(['room', roomId]);
@@ -37,7 +38,8 @@ const RoomDetails = () => {
         onError: (err) => toast.error(err.message || 'Failed to occupy room.'),
     });
 
-    const extendMutation = useMutation(roomService.extendRoom, {
+    const extendMutation = useMutation({
+        mutationFn: roomService.extendRoom,
         onSuccess: () => {
             toast.success('Occupation extended successfully!');
             queryClient.invalidateQueries(['room', roomId]);
@@ -47,7 +49,8 @@ const RoomDetails = () => {
         onError: (err) => toast.error(err.message || 'Failed to extend occupation.'),
     });
     
-    const releaseMutation = useMutation(roomService.releaseRoom, {
+    const releaseMutation = useMutation({
+        mutationFn: roomService.releaseRoom,
         onSuccess: () => {
             toast.success('Room released successfully!');
             queryClient.invalidateQueries(['room', roomId]);

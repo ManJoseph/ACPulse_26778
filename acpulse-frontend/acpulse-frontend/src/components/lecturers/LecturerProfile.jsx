@@ -11,15 +11,13 @@ import { LECTURER_STATUS } from '../../utils/constants';
 const LecturerProfile = () => {
     const { lecturerId } = useParams();
 
-    const { data: lecturer, isLoading, error } = useQuery(
-        ['lecturer', lecturerId],
-        () => lecturerService.getLecturerById(lecturerId),
-        {
-            onError: (err) => {
-                toast.error(err.message || 'Failed to fetch lecturer details.');
-            },
-        }
-    );
+    const { data: lecturer, isLoading, error } = useQuery({
+        queryKey: ['lecturer', lecturerId],
+        queryFn: () => lecturerService.getLecturerById(lecturerId),
+        onError: (err) => {
+            toast.error(err.message || 'Failed to fetch lecturer details.');
+        },
+    });
 
     if (isLoading) return <LoadingSpinner fullScreen text="Loading Lecturer Profile..." />;
     if (error) return <EmptyState title="Error" description={error.message} />;

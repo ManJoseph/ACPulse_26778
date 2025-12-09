@@ -13,27 +13,22 @@ const VerificationStatus = () => {
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
 
-    const { data: verificationStatus, isLoading } = useQuery(
-        ['verificationStatus', user.id],
-        userService.getVerificationStatus,
-        {
-            // Only run this query for lecturer and staff roles
-            enabled: user?.role === ROLES.LECTURER || user?.role === ROLES.STAFF,
-        }
-    );
+    const { data: verificationStatus, isLoading } = useQuery({
+        queryKey: ['verificationStatus', user.id],
+        queryFn: userService.getVerificationStatus,
+        enabled: user?.role === ROLES.LECTURER || user?.role === ROLES.STAFF,
+    });
 
-    const requestVerificationMutation = useMutation(
-        userService.requestVerification,
-        {
-            onSuccess: () => {
-                toast.success('Verification request sent successfully!');
-                queryClient.invalidateQueries(['verificationStatus', user.id]);
-            },
-            onError: (error) => {
-                toast.error(error.message || 'Failed to send verification request.');
-            },
-        }
-    );
+    const requestVerificationMutation = useMutation({
+        mutationFn: userService.requestVerification,
+        onSuccess: () => {
+            toast.success('Verification request sent successfully!');
+            queryClient.invalidateQueries(['verificationStatus', user.id]);
+        },
+        onError: (error) => {
+            toast.error(error.message || 'Failed to send verification request.');
+        },
+    });
 
     const handleRequestVerification = () => {
         // We can pass additional data if the backend needs it, e.g., from a form.

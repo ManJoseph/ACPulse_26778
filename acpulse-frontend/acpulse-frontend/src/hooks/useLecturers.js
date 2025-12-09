@@ -7,13 +7,11 @@ const useLecturers = (initialFilters = {}) => {
   const [filters, setFilters] = useState(initialFilters);
   const debouncedFilters = useDebounce(filters, 500);
 
-  const { data, isLoading, error, isFetching } = useQuery(
-    ['lecturers', debouncedFilters],
-    () => lecturerService.getLecturers(debouncedFilters),
-    {
-      keepPreviousData: true,
-    }
-  );
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ['lecturers', debouncedFilters],
+    queryFn: () => lecturerService.getLecturers(debouncedFilters),
+    keepPreviousData: true,
+  });
 
   return {
     lecturers: data?.content || [],

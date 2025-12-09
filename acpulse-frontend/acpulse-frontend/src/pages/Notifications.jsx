@@ -60,30 +60,26 @@ const Notifications = () => {
     const user = useAuthStore((state) => state.user);
     const userId = user?.userId;
 
-    const { data: notifications, isLoading, error } = useQuery(
-        ['notifications', userId],
-        () => notificationService.getNotifications(),
-        { enabled: !!userId }
-    );
+    const { data: notifications, isLoading, error } = useQuery({
+        queryKey: ['notifications', userId],
+        queryFn: () => notificationService.getNotifications(),
+        enabled: !!userId
+    });
 
-    const markAsReadMutation = useMutation(
-        (notificationId) => notificationService.markAsRead(notificationId),
-        {
-            onSuccess: () => {
-                queryClient.invalidateQueries(['notifications', userId]);
-            }
+    const markAsReadMutation = useMutation({
+        mutationFn: (notificationId) => notificationService.markAsRead(notificationId),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['notifications', userId]);
         }
-    );
+    });
 
-    const markAllAsReadMutation = useMutation(
-        () => notificationService.markAllAsRead(),
-        {
-            onSuccess: () => {
-                queryClient.invalidateQueries(['notifications', userId]);
-                toast.success('All notifications marked as read.');
-            }
+    const markAllAsReadMutation = useMutation({
+        mutationFn: () => notificationService.markAllAsRead(),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['notifications', userId]);
+            toast.success('All notifications marked as read.');
         }
-    );
+    });
 
     const handleMarkAsRead = (id) => {
         markAsReadMutation.mutate(id);

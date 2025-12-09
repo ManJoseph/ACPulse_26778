@@ -57,8 +57,8 @@ const GlobalSearch = () => {
     setIsLoading(true);
     try {
       const [rooms, lecturers] = await Promise.all([
-        roomService.getAllRooms({ search: searchQuery }),
-        lecturerService.getAllLecturers({ search: searchQuery })
+        roomService.getRooms({ search: searchQuery }),
+        lecturerService.getLecturers({ search: searchQuery })
       ]);
 
       const formattedResults = [

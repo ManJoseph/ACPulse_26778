@@ -7,13 +7,11 @@ const useRooms = (initialFilters = {}) => {
   const [filters, setFilters] = useState(initialFilters);
   const debouncedFilters = useDebounce(filters, 500);
 
-  const { data, isLoading, error, isFetching } = useQuery(
-    ['rooms', debouncedFilters],
-    () => roomService.getRooms(debouncedFilters),
-    {
-      keepPreviousData: true,
-    }
-  );
+  const { data, isLoading, error, isFetching } = useQuery({
+    queryKey: ['rooms', debouncedFilters],
+    queryFn: () => roomService.getRooms(debouncedFilters),
+    keepPreviousData: true,
+  });
 
   return {
     rooms: data || [],

@@ -13,12 +13,13 @@ const VerificationRequests = () => {
     const [statusFilter, setStatusFilter] = useState(VERIFICATION_STATUS.PENDING);
     const [action, setAction] = useState(null); // { type: 'approve' | 'reject', request: {...} }
 
-    const { data: requests, isLoading, error } = useQuery(
-        ['verificationRequests', statusFilter],
-        () => adminService.getVerificationRequests(statusFilter)
-    );
+    const { data: requests, isLoading, error } = useQuery({
+        queryKey: ['verificationRequests', statusFilter],
+        queryFn: () => adminService.getVerificationRequests(statusFilter)
+    });
 
-    const approveMutation = useMutation(adminService.approveUser, {
+    const approveMutation = useMutation({
+        mutationFn: adminService.approveUser,
         onSuccess: () => {
             toast.success('User approved successfully!');
             queryClient.invalidateQueries('verificationRequests');
@@ -27,7 +28,8 @@ const VerificationRequests = () => {
         onError: (err) => toast.error(err.message || 'Failed to approve user.'),
     });
 
-    const rejectMutation = useMutation(adminService.rejectUser, {
+    const rejectMutation = useMutation({
+        mutationFn: adminService.rejectUser,
         onSuccess: () => {
             toast.success('User rejected successfully!');
             queryClient.invalidateQueries('verificationRequests');
@@ -42,18 +44,18 @@ const VerificationRequests = () => {
             label: 'User',
             render: (_, row) => (
                 <div className="flex items-center gap-3">
-                    <Avatar name={row.user.name} size="sm" />
+                    <Avatar name={row.userName} size="sm" />
                     <div>
-                        <p className="font-medium">{row.user.name}</p>
-                        <p className="text-xs text-gray-500">{row.user.email}</p>
+                        <p className="font-medium">{row.userName}</p>
+                        <p className="text-xs text-gray-500">{row.email}</p>
                     </div>
                 </div>
             )
         },
-        { key: 'roleType', label: 'Role' },
-        { key: 'identificationNumber', label: 'ID Number' },
+        { key: 'requestType', label: 'Role' },
+        { key: 'submittedId', label: 'ID Number' },
         {
-            key: 'createdAt',
+            key: 'submittedAt',
             label: 'Request Date',
             render: (date) => format(new Date(date), 'MMM d, yyyy')
         },
@@ -98,7 +100,7 @@ const VerificationRequests = () => {
             {!isLoading && !error && (
                 <Table
                     columns={columns}
-                    data={requests}
+                    data={requests || []}
                     emptyMessage="No verification requests found for this status."
                 />
             )}
@@ -106,10 +108,10 @@ const VerificationRequests = () => {
             {/* Action Modals */}
             {action?.type === 'approve' && (
                 <Modal isOpen={true} onClose={() => setAction(null)} title="Approve User">
-                    <p>Are you sure you want to approve the user <span className="font-semibold">{action.request.user.name}</span> as a <span className="font-semibold">{action.request.roleType}</span>?</p>
+                    <p>Are you sure you want to approve the user <span className="font-semibold">{action.request.userName}</span> as a <span className="font-semibold">{action.request.requestType}</span>?</p>
                     <Modal.Footer
                         onCancel={() => setAction(null)}
-                        onConfirm={() => approveMutation.mutate(action.request.id)}
+                        onConfirm={() => approveMutation.mutate(action.request.requestId)}
                         confirmText="Approve"
                         loading={approveMutation.isLoading}
                     />
@@ -120,9 +122,9 @@ const VerificationRequests = () => {
                 <RejectModal 
                     isOpen={true} 
                     onClose={() => setAction(null)} 
-                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.id, reason })}
+                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.requestId, reason })}
                     isLoading={rejectMutation.isLoading}
-                    user={action.request.user}
+                    user={{ name: action.request.userName }}
                 />
             )}
         </div>

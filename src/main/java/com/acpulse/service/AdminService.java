@@ -4,6 +4,8 @@ import com.acpulse.exception.NotFoundException;
 import com.acpulse.model.*;
 import com.acpulse.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -26,6 +28,9 @@ public class AdminService {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private RoleRepository roleRepository;
 
     public Map<String, Object> getStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -160,6 +165,66 @@ public class AdminService {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "User rejected");
         response.put("userId", user.getId());
+        return response;
+    }
+    
+    public Page<Map<String, Object>> getUsers(String search, String role, Pageable pageable) {
+        Page<User> userPage;
+        if (role != null && !role.isEmpty()) {
+            userPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, role, pageable);
+        } else {
+            userPage = userRepository.findByNameContainingIgnoreCase(search, pageable);
+        }
+        return userPage.map(this::toUserResponse);
+    }
+
+    @Transactional
+    public Map<String, Object> updateUser(Integer userId, Map<String, Object> updates) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "name":
+                    user.setName((String) value);
+                    break;
+                case "department":
+                    user.setDepartment((String) value);
+                    break;
+                case "role":
+                    Role newRole = roleRepository.findByRoleName((String) value)
+                            .orElseThrow(() -> new NotFoundException("Role not found"));
+                    user.setRole(newRole);
+                    break;
+                case "status":
+                    user.setStatus(User.UserStatus.valueOf((String) value));
+                    break;
+            }
+        });
+
+        user.setUpdatedAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(user);
+        return toUserResponse(updatedUser);
+    }
+
+    @Transactional
+    public void deleteUser(Integer userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException("User not found");
+        }
+        userRepository.deleteById(userId);
+    }
+
+    private Map<String, Object> toUserResponse(User user) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("name", user.getName());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole().getRoleName());
+        response.put("department", user.getDepartment());
+        response.put("status", user.getStatus().name());
+        response.put("createdAt", user.getCreatedAt());
+        response.put("updatedAt", user.getUpdatedAt());
         return response;
     }
 }

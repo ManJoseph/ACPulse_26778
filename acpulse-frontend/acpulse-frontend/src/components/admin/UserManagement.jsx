@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Edit, Trash2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
+import { useForm } from 'react-hook-form';
 
 import { adminService } from '../../services';
 import useDebounce from '../../hooks/useDebounce';
@@ -17,14 +18,14 @@ const UserManagement = () => {
 
     const queryFilters = { ...filters, search: debouncedSearch };
     
-    const { data: usersPage, isLoading, error } = useQuery(
-        ['users', queryFilters],
-        () => adminService.getUsers(queryFilters),
-        { keepPreviousData: true }
-    );
+    const { data: usersPage, isLoading, error } = useQuery({
+        queryKey: ['users', queryFilters],
+        queryFn: () => adminService.getUsers(queryFilters),
+        keepPreviousData: true
+    });
 
-    const updateUserMutation = useMutation(
-        ({ userId, userData }) => adminService.updateUser(userId, userData), {
+    const updateUserMutation = useMutation({
+        mutationFn: ({ userId, userData }) => adminService.updateUser(userId, userData),
         onSuccess: () => {
             toast.success('User updated successfully!');
             queryClient.invalidateQueries('users');
@@ -33,7 +34,8 @@ const UserManagement = () => {
         onError: (err) => toast.error(err.message || 'Failed to update user.'),
     });
 
-    const deleteUserMutation = useMutation(adminService.deleteUser, {
+    const deleteUserMutation = useMutation({
+        mutationFn: adminService.deleteUser,
         onSuccess: () => {
             toast.success('User deleted successfully!');
             queryClient.invalidateQueries('users');
