@@ -46,23 +46,23 @@ const Lecturers = () => {
         </div>
       )}
 
-      {!isLoading && error && (
+      {!isLoading && lecturers.length === 0 && ( // Show "No Lecturers Found" if not loading and no lecturers
         <EmptyState
-          icon={<Users className="w-12 h-12" />}
+          icon={Users}
+          title="No Lecturers Found"
+          message="There are no lecturers registered in the system or your filters returned no results."
+        />
+      )}
+
+      {!isLoading && error && lecturers.length > 0 && ( // Show "An Error Occurred" only if an error occurred AND some data was still available (unlikely with 403)
+        <EmptyState
+          icon={Users}
           title="An Error Occurred"
           message={`Failed to fetch lecturers: ${error.message}`}
         />
       )}
 
-      {!isLoading && !error && lecturers.length === 0 && (
-        <EmptyState
-          icon={<Users className="w-12 h-12" />}
-          title="No Lecturers Found"
-          message="Try adjusting your search filters."
-        />
-      )}
-
-      {!isLoading && !error && lecturers.length > 0 && (
+      {!isLoading && !error && lecturers.length > 0 && ( // Display lecturers only if not loading, no error, and data exists
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lecturers.map((lecturer) => (

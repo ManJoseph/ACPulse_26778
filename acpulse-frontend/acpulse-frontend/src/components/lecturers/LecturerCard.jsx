@@ -7,6 +7,8 @@ import Avatar from '../common/Avatar';
 import { LECTURER_STATUS } from '../../utils/constants';
 
 const LecturerCard = ({ lecturer }) => {
+  if (!lecturer) return null; // Defensive rendering
+
   const navigate = useNavigate();
 
   const getStatusBadge = (status) => {
@@ -49,7 +51,7 @@ const LecturerCard = ({ lecturer }) => {
             <Briefcase className="w-4 h-4 text-gray-400" />
             <span>{lecturer.office?.name || 'No office assigned'}</span>
           </div>
-          {lecturer.user.phoneNumber && (
+          {lecturer.user?.phoneNumber && (
              <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-gray-400" />
                 <span>{lecturer.user.phoneNumber}</span>

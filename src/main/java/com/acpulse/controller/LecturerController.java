@@ -2,6 +2,7 @@ package com.acpulse.controller;
 
 import com.acpulse.dto.request.UpdateStatusRequest;
 import com.acpulse.service.LecturerService;
+import com.acpulse.service.LecturerService.LecturerResponse; // Import the new LecturerResponse DTO
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,17 @@ public class LecturerController {
 
     @Autowired
     private LecturerService lecturerService;
+
+    // Get all lecturers with optional filters and pagination
+    @GetMapping
+    public ResponseEntity<List<LecturerResponse>> getAllLecturers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        List<LecturerResponse> response = lecturerService.getLecturers(search, status, page, size);
+        return ResponseEntity.ok(response);
+    }
 
     // Search lecturers by name or keyword
     @GetMapping("/search")
