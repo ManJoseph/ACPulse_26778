@@ -18,8 +18,17 @@ const lecturerService = {
     if (page !== undefined) params.append('page', page);
     if (size) params.append('size', size);
 
-    const response = await api.get(`/lecturers?${params.toString()}`);
-    return response.data;
+    const apiUrl = `/lecturers?${params.toString()}`;
+    console.log('LecturerService: Fetching lecturers from:', apiUrl);
+
+    try {
+      const response = await api.get(apiUrl);
+      console.log('LecturerService: API response received:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('LecturerService: Error fetching lecturers:', error);
+      throw error; // Re-throw to be caught by the component
+    }
   },
 
   getLecturerById: async (lecturerId) => {

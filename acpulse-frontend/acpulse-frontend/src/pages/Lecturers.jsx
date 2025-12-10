@@ -8,6 +8,8 @@ import { Users } from 'lucide-react';
 import lecturerService from '../services/lecturerService'; // Corrected import
 
 const Lecturers = () => {
+  console.log("Lecturers component rendered");
+
   const [lecturers, setLecturers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,29 +20,37 @@ const Lecturers = () => {
     size: 9,
   });
 
+  console.log('Lecturers component filters state:', filters);
+
   // Fetch lecturers data
   const fetchLecturers = async () => {
+    console.log('Fetching lecturers with filters:', filters);
     setIsLoading(true);
     setError(null);
     try {
       const response = await lecturerService.getLecturers(filters);
-      // Assuming response.content contains the array of lecturers and response.totalPages etc. are in the root response object
-      setLecturers(response.content);
-      // If backend returns pagination data directly in 'response', use it.
-      // For now, page data is not explicitly set in state, assuming useLecturers hook was doing this.
-      // Since we replaced useLecturers, we need to adapt.
-      // For now, let's keep page as a prop passed to Pagination if response has it.
+      console.log('Lecturer API response:', response);
+      setLecturers(response || []); // Directly use the response array, or an empty array if null/undefined
+      // Pagination logic needs to be managed if 'page' state is explicitly used.
+      // For now, response.content is directly used.
     } catch (err) {
+      console.error('Error fetching lecturers:', err);
       setError(err);
       setLecturers([]); // Ensure lecturers array is empty on error
     } finally {
       setIsLoading(false);
+      console.log('Finished fetching lecturers. isLoading:', false);
     }
   };
 
   useEffect(() => {
     fetchLecturers();
   }, [filters]); // Refetch when filters change
+
+  // Log component state changes
+  useEffect(() => {
+    console.log('Lecturers component state updated:', { lecturers, isLoading, error });
+  }, [lecturers, isLoading, error]);
 
   const handlePageChange = (newPage) => {
     setFilters((prevFilters) => ({
