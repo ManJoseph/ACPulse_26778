@@ -106,9 +106,9 @@ const Notifications = () => {
        </div>
 
        {isLoading && <div className="p-8 flex justify-center"><LoadingSpinner /></div>}
-       {error && <EmptyState title="Error" message={error.message} icon={<Bell />} />}
+       {error && <EmptyState title="Error" message={error.message} icon={Bell} />}
        {!isLoading && !error && notifications?.length === 0 && (
-           <EmptyState title="No Notifications" message="You're all caught up!" icon={<Archive />} />
+           <EmptyState title="No Notifications" message="You're all caught up!" icon={Archive} />
        )}
 
        <div>
