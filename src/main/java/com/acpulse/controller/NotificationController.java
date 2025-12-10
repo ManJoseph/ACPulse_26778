@@ -1,5 +1,6 @@
 package com.acpulse.controller;
 
+import com.acpulse.dto.response.NotificationResponse; // Import the new DTO
 import com.acpulse.model.Notification;
 import com.acpulse.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,8 @@ public class NotificationController {
 
     //  Get all notifications for a user
     @GetMapping
-    public ResponseEntity<List<Notification>> getNotifications(@RequestParam Integer userId) {
-        List<Notification> notifications = notificationService.getUserNotifications(userId);
+    public ResponseEntity<List<NotificationResponse>> getNotifications(@RequestParam Integer userId) {
+        List<NotificationResponse> notifications = notificationService.getUserNotifications(userId);
         return ResponseEntity.ok(notifications);
     }
 

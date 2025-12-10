@@ -106,16 +106,20 @@ const Notifications = () => {
        </div>
 
        {isLoading && <div className="p-8 flex justify-center"><LoadingSpinner /></div>}
-       {error && <EmptyState title="Error" message={error.message} icon={Bell} />}
-       {!isLoading && !error && notifications?.length === 0 && (
+       {!isLoading && notifications?.length === 0 && (
            <EmptyState title="No Notifications" message="You're all caught up!" icon={Archive} />
        )}
+       {!isLoading && error && notifications?.length > 0 && ( // Display error only if notifications are NOT empty (i.e., some loaded but others failed)
+           <EmptyState title="Error" message={error.message} icon={Bell} />
+       )}
 
-       <div>
-        {notifications?.map(notification => (
-            <NotificationItem key={notification.id} notification={notification} onMarkAsRead={handleMarkAsRead} />
-        ))}
-       </div>
+       {!isLoading && !error && notifications?.length > 0 && (
+           <div>
+            {notifications?.map(notification => (
+                <NotificationItem key={notification.id} notification={notification} onMarkAsRead={handleMarkAsRead} />
+            ))}
+           </div>
+       )}
     </div>
   );
 };

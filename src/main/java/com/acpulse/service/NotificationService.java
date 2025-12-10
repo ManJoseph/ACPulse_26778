@@ -1,5 +1,6 @@
 package com.acpulse.service;
 
+import com.acpulse.dto.response.NotificationResponse; // Import the new DTO
 import com.acpulse.model.Notification;
 import com.acpulse.model.User;
 import com.acpulse.repository.NotificationRepository;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class NotificationService {
@@ -34,8 +36,11 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
-    public List<Notification> getUserNotifications(Integer userId) {
-        return notificationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+    public List<NotificationResponse> getUserNotifications(Integer userId) {
+        List<Notification> notifications = notificationRepository.findByUser_IdOrderByCreatedAtDesc(userId);
+        return notifications.stream()
+                .map(NotificationResponse::new)
+                .collect(Collectors.toList());
     }
 
     public long getUnreadCount(Integer userId) {
