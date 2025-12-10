@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
 import Pagination from '../components/common/Pagination';
 import { Users } from 'lucide-react';
-import { lecturerService } from '../services/lecturerService'; // Importing the service
+import lecturerService from '../services/lecturerService'; // Corrected import
 
 const Lecturers = () => {
   const [lecturers, setLecturers] = useState([]);
