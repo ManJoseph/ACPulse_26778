@@ -13,6 +13,7 @@ import ResetPassword from '../pages/ResetPassword';
 import Dashboard from '../pages/Dashboard';
 import Rooms from '../pages/Rooms';
 import Lecturers from '../pages/Lecturers';
+import LecturerSchedule from '../pages/LecturerSchedule'; // Added import
 import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
 import NotFound from '../pages/NotFound';
@@ -49,6 +50,7 @@ export const AppRouter = () => {
             { path: 'dashboard', element: <Dashboard /> },
             { path: 'rooms', element: <Rooms /> },
             { path: 'lecturers', element: <Lecturers /> },
+            { path: 'schedule', element: <LecturerSchedule /> }, // Added route
             { path: 'profile', element: <Profile /> },
             { path: 'notifications', element: <Notifications /> },
             {

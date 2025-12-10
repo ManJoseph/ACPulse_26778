@@ -47,6 +47,27 @@ const lecturerService = {
     const response = await api.put('/lecturers/status', data);
     return response.data;
   },
+
+  // Schedule management
+  getLecturerSchedule: async (lecturerId) => {
+    const response = await api.get(`/lecturers/${lecturerId}/schedule`);
+    return response.data;
+  },
+
+  setLecturerSchedule: async (lecturerId, scheduleData) => {
+    const response = await api.post(`/lecturers/${lecturerId}/schedule`, scheduleData);
+    return response.data;
+  },
+
+  updateLecturerSchedule: async (scheduleId, scheduleData) => {
+    const response = await api.post(`/lecturers/${scheduleData.lecturerId}/schedule`, { ...scheduleData, id: scheduleId }); // Re-use POST for update, assuming backend handles ID for update
+    return response.data;
+  },
+
+  deleteLecturerScheduleEntry: async (scheduleId) => {
+    const response = await api.delete(`/lecturers/schedule/${scheduleId}`);
+    return response.data;
+  },
 };
 
 export default lecturerService;

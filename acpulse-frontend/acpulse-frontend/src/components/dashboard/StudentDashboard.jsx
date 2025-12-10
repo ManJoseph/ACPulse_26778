@@ -4,8 +4,12 @@ import { Search, Users, DoorOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../common/Card';
 import Button from '../common/Button';
+import { useAuthStore } from '../../store/authStore';
 
-const StatCard = ({ icon, label, value, color }) => (
+const StudentDashboard = () => {
+    const navigate = useNavigate();
+    const { user } = useAuthStore(); // Moved inside the component function
+
   <Card>
     <div className={`flex items-center justify-between p-4 rounded-lg bg-white dark:bg-dark-800 shadow`}>
       <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/50`}>
@@ -30,7 +34,7 @@ const StudentDashboard = () => {
     >
       <div className="flex justify-between items-center">
         <div>
-            <h1 className="text-3xl font-bold tracking-tight">Welcome, Student!</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Welcome, {user?.name}!</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
                 Here's a quick overview of what's happening.
             </p>

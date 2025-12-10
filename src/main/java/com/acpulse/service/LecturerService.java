@@ -1,5 +1,6 @@
 package com.acpulse.service;
 
+import com.acpulse.dto.request.ScheduleRequest;
 import com.acpulse.dto.request.UpdateStatusRequest;
 import com.acpulse.dto.response.LecturerResponse; // Import the new DTO
 import com.acpulse.exception.NotFoundException;
@@ -8,6 +9,7 @@ import com.acpulse.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +21,9 @@ public class LecturerService {
 
     @Autowired
     private LecturerStatusRepository lecturerStatusRepository;
+
+    @Autowired
+    private LectureScheduleRepository lectureScheduleRepository; // New autowired repository
 
     public List<LecturerResponse> getLecturers(String search, String status, int page, int size) {
         List<User> lecturers = userRepository.findByRole_RoleName("LECTURER");
@@ -43,9 +48,9 @@ public class LecturerService {
                         Optional<LecturerStatus> currentStatus = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true);
                         if (currentStatus.isPresent()) {
                             matchesStatus = currentStatus.get().getStatus().name().equalsIgnoreCase(status);
-                        } else {
-                            matchesStatus = false; // No active status means no match for a specific status filter
                         }
+                    } else {
+                        matchesStatus = false; // No active status means no match for a specific status filter
                     }
                     return matchesStatus;
                 })
@@ -74,92 +79,51 @@ public class LecturerService {
         return responses;
     }
 
-
-    public List<Map<String, Object>> searchLecturers(String query) {
-        List<User> lecturers = userRepository.findByNameContainingIgnoreCaseAndRole_RoleName(query, "LECTURER");
-        List<Map<String, Object>> responses = new ArrayList<>();
-
-        for (User lecturer : lecturers) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("lecturerId", lecturer.getId());
-            response.put("name", lecturer.getName());
-            response.put("department", lecturer.getDepartment());
-            response.put("email", lecturer.getEmail());
-            response.put("phoneNumber", lecturer.getPhoneNumber());
-
-            // Get current status
-            lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true)
-                    .ifPresent(status -> {
-                        response.put("currentStatus", status.getStatus().name());
-                        response.put("statusMessage", status.getCustomMessage());
-                        response.put("expectedAvailableTime", status.getExpectedEndTime());
-
-                        // Add room info if teaching
-                        if (status.getCurrentRoom() != null) {
-                            Room room = status.getCurrentRoom();
-                            Map<String, Object> roomInfo = new HashMap<>();
-                            roomInfo.put("roomNumber", room.getRoomNumber());
-                            roomInfo.put("roomName", room.getRoomName());
-                            response.put("currentRoom", roomInfo);
-                        }
-                    });
-
-            responses.add(response);
-        }
-
-        return responses;
+    // New method: Get lecturer's schedule
+    public List<LectureSchedule> getLecturerSchedule(Integer lecturerId) {
+        // Validate if lecturer exists
+        userRepository.findById(lecturerId)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
+        
+        return lectureScheduleRepository.findByLecturer_IdOrderByDayOfWeekAscStartTimeAsc(lecturerId);
     }
 
-    public Map<String, Object> getLecturerStatus(Integer lecturerId) {
-        User lecturer = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("lecturerId", lecturer.getId());
-
-        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
-                .ifPresent(status -> {
-                    response.put("status", status.getStatus().name());
-                    response.put("customMessage", status.getCustomMessage());
-                    response.put("statusStartTime", status.getStatusStartTime());
-                    response.put("expectedEndTime", status.getExpectedEndTime());
-                    response.put("isActive", status.getIsActive());
-
-                    // Add room info if present
-                    if (status.getCurrentRoom() != null) {
-                        Room room = status.getCurrentRoom();
-                        Map<String, String> roomInfo = new HashMap<>();
-                        roomInfo.put("roomNumber", room.getRoomNumber());
-                        roomInfo.put("roomName", room.getRoomName());
-                        response.put("currentRoom", roomInfo);
-                    }
-                });
-
-        return response;
-    }
-
+    // New method: Set/Update lecturer's schedule
     @Transactional
-    public Map<String, String> updateStatus(Integer lecturerId, UpdateStatusRequest request) {
-        // Get lecturer
+    public LectureSchedule setLecturerSchedule(Integer lecturerId, ScheduleRequest scheduleRequest) {
         User lecturer = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+                .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
+        
+        LectureSchedule schedule;
+        if (scheduleRequest.getId() != null) {
+            // Update existing schedule entry
+            schedule = lectureScheduleRepository.findById(scheduleRequest.getId())
+                    .orElseThrow(() -> new NotFoundException("Schedule entry not found with id: " + scheduleRequest.getId()));
+            if (!schedule.getLecturer().getId().equals(lecturerId)) {
+                throw new SecurityException("Lecturer ID mismatch for schedule update.");
+            }
+            schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
+            schedule.setStartTime(scheduleRequest.getStartTime());
+            schedule.setEndTime(scheduleRequest.getEndTime());
+            schedule.setUpdatedAt(LocalDateTime.now());
+        } else {
+            // Create new schedule entry
+            schedule = new LectureSchedule();
+            schedule.setLecturer(lecturer);
+            schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
+            schedule.setStartTime(scheduleRequest.getStartTime());
+            schedule.setEndTime(scheduleRequest.getEndTime());
+            // createdAt is set by default in model
+        }
+        return lectureScheduleRepository.save(schedule);
+    }
 
-        // Deactivate previous status
-        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
-                .ifPresent(status -> {
-                    status.setIsActive(false);
-                    lecturerStatusRepository.save(status);
-                });
-
-        // Create new status
-        LecturerStatus status = new LecturerStatus();
-        status.setLecturer(lecturer);
-        status.setStatus(LecturerStatus.Status.valueOf(request.getStatus().toUpperCase()));
-        status.setCustomMessage(request.getCustomMessage());
-        lecturerStatusRepository.save(status);
-
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Status updated successfully");
-        return response;
+    // New method: Delete a schedule entry
+    @Transactional
+    public void deleteLecturerScheduleEntry(Integer scheduleId) {
+        if (!lectureScheduleRepository.existsById(scheduleId)) {
+            throw new NotFoundException("Schedule entry not found with id: " + scheduleId);
+        }
+        lectureScheduleRepository.deleteById(scheduleId);
     }
 }
