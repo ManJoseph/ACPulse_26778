@@ -9,13 +9,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
+import java.util.stream.Collectors;
 
+@Service
+public class LecturerService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private LecturerStatusRepository lecturerStatusRepository;
 
     public List<LecturerResponse> getLecturers(String search, String status, int page, int size) {
-        // Here we need to fetch users that are lecturers and apply filters
-        // For simplicity, let's just fetch all lecturers and then filter in memory first
-        // If performance is an issue, we'll need to use Spring Data JPA Specifications or custom queries
-
         List<User> lecturers = userRepository.findByRole_RoleName("LECTURER");
 
         // Apply search and status filters in memory for now
@@ -33,20 +38,18 @@ import java.util.*;
                 .filter(lecturer -> {
                     boolean matchesStatus = true;
                     if (status != null && !status.trim().isEmpty()) {
-                        // We need to get the lecturer's current status from LecturerStatusRepository
-                        // This makes the in-memory filtering more complex.
-                        // For now, let's assume status refers to a property directly on the User or Lecturer entity.
-                        // A more robust solution would involve joining or sub-queries at the repository level.
-                        // Skipping detailed status filtering for in-memory for brevity,
-                        // as Spring Data JPA would be better here.
-                        // For now, just match an exact status if present.
-                        // (Assuming User has a direct 'status' field for simplicity or we fetch from LecturerStatusRepository later)
-                        // This part needs a more accurate model or a database query.
-                        // For demonstration, let's make it simpler or rely on proper JPA queries later.
+                        // For simplicity in in-memory filtering, let's assume lecturerStatusRepository can give us the current status
+                        // In a real scenario with proper JPA, this would be handled via joins or subqueries at the repository level.
+                        Optional<LecturerStatus> currentStatus = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true);
+                        if (currentStatus.isPresent()) {
+                            matchesStatus = currentStatus.get().getStatus().name().equalsIgnoreCase(status);
+                        } else {
+                            matchesStatus = false; // No active status means no match for a specific status filter
+                        }
                     }
                     return matchesStatus;
                 })
-                .toList();
+                .collect(Collectors.toList());
 
         List<LecturerResponse> responses = new ArrayList<>();
         for (User lecturer : lecturers) {
