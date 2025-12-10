@@ -7,11 +7,15 @@ import { format } from 'date-fns';
 import { adminService } from '../../services';
 import { Table, Button, LoadingSpinner, EmptyState, Modal, Badge, Avatar } from '../common';
 import { VERIFICATION_STATUS } from '../../utils/constants';
+import { useAuthStore } from '../../store/authStore'; // Added import
 
 const VerificationRequests = () => {
     const queryClient = useQueryClient();
+    const user = useAuthStore((state) => state.user); // Get logged-in user
+    const adminId = user?.userId; // Extract userId as adminId
     const [statusFilter, setStatusFilter] = useState(VERIFICATION_STATUS.PENDING);
     const [action, setAction] = useState(null); // { type: 'approve' | 'reject', request: {...} }
+
 
     const { data: requests, isLoading, error } = useQuery({
         queryKey: ['verificationRequests', statusFilter],
@@ -19,7 +23,7 @@ const VerificationRequests = () => {
     });
 
     const approveMutation = useMutation({
-        mutationFn: adminService.approveUser,
+        mutationFn: ({ requestId, adminId }) => adminService.approveUser(requestId, adminId),
         onSuccess: () => {
             toast.success('User approved successfully!');
             queryClient.invalidateQueries('verificationRequests');
@@ -29,7 +33,7 @@ const VerificationRequests = () => {
     });
 
     const rejectMutation = useMutation({
-        mutationFn: adminService.rejectUser,
+        mutationFn: ({ requestId, reason, adminId }) => adminService.rejectUser(requestId, reason, adminId),
         onSuccess: () => {
             toast.success('User rejected successfully!');
             queryClient.invalidateQueries('verificationRequests');
@@ -111,7 +115,7 @@ const VerificationRequests = () => {
                     <p>Are you sure you want to approve the user <span className="font-semibold">{action.request.userName}</span> as a <span className="font-semibold">{action.request.requestType}</span>?</p>
                     <Modal.Footer
                         onCancel={() => setAction(null)}
-                        onConfirm={() => approveMutation.mutate(action.request.requestId)}
+                        onConfirm={() => approveMutation.mutate({ requestId: action.request.requestId, adminId })}
                         confirmText="Approve"
                         loading={approveMutation.isLoading}
                     />
@@ -122,7 +126,7 @@ const VerificationRequests = () => {
                 <RejectModal 
                     isOpen={true} 
                     onClose={() => setAction(null)} 
-                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.requestId, reason })}
+                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.requestId, reason, adminId })}
                     isLoading={rejectMutation.isLoading}
                     user={{ name: action.request.userName }}
                 />

@@ -100,6 +100,13 @@ public class AdminService {
 
         // Update user status
         user.setStatus(User.UserStatus.APPROVED);
+
+        // Set user role based on request type
+        String roleName = request.getRequestType().name(); // e.g., "LECTURER", "STUDENT", "STAFF"
+        Role userRole = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new NotFoundException("Role not found for type: " + roleName));
+        user.setRole(userRole);
+
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 

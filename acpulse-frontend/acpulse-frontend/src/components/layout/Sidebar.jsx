@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 import { ROLES } from '../../utils/constants';
+import { useAuthStore } from '../../store/authStore'; // Added import
+import { useQueryClient } from '@tanstack/react-query'; // Added import
 
 /**
  * Reusable Sidebar Component
@@ -25,6 +27,14 @@ import { ROLES } from '../../utils/constants';
  */
 const Sidebar = ({ isCollapsed, setIsCollapsed, user }) => {
   const navigate = useNavigate();
+  const logoutAuthStore = useAuthStore((state) => state.logout); // Get logout action from store
+  const queryClient = useQueryClient(); // Get query client
+
+  const handleLogout = () => {
+    queryClient.clear(); // Clear React Query cache
+    logoutAuthStore(); // Clear auth store state and localStorage
+    navigate('/login'); // Navigate to login page
+  };
 
   // Navigation items based on role
   const getNavigationItems = () => {
@@ -235,11 +245,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, user }) => {
         {/* User Section */}
         <div className="p-4 border-t border-gray-200 dark:border-dark-700">
           <button
-            onClick={() => {
-              // Handle logout
-              localStorage.removeItem('token');
-              navigate('/login');
-            }}
+            onClick={handleLogout}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
               'text-red-600 dark:text-red-400',

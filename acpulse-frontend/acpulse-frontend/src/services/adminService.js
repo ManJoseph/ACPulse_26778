@@ -14,8 +14,8 @@ const adminService = {
   },
 
   // Approve user
-  approveUser: async (requestId) => {
-    const response = await api.post(`/admin/verification-requests/${requestId}/approve`);
+  approveUser: async (requestId, adminId) => {
+    const response = await api.post(`/admin/verification-requests/${requestId}/approve?adminId=${adminId}`);
     return response.data;
   },
 
