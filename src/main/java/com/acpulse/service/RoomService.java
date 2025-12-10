@@ -32,9 +32,37 @@ public class RoomService {
         return buildRoomResponse(room);
     }
 
-    public List<RoomResponse> getAllRooms() {
+    public List<RoomResponse> getAllRooms(String search, String status) {
         List<Room> rooms = roomRepository.findAll();
         List<RoomResponse> responses = new ArrayList<>();
+
+        // Apply filters
+        rooms = rooms.stream()
+                .filter(room -> {
+                    boolean matchesSearch = true;
+                    if (search != null && !search.trim().isEmpty()) {
+                        String lowerCaseSearch = search.toLowerCase();
+                        matchesSearch = room.getRoomNumber().toLowerCase().contains(lowerCaseSearch) ||
+                                room.getRoomName().toLowerCase().contains(lowerCaseSearch) ||
+                                room.getBuilding().toLowerCase().contains(lowerCaseSearch) ||
+                                room.getFloor().toLowerCase().contains(lowerCaseSearch);
+                    }
+                    return matchesSearch;
+                })
+                .filter(room -> {
+                    boolean matchesStatus = true;
+                    if (status != null && !status.trim().isEmpty()) {
+                        try {
+                            Room.RoomStatus roomStatus = Room.RoomStatus.valueOf(status.toUpperCase());
+                            matchesStatus = room.getStatus() == roomStatus;
+                        } catch (IllegalArgumentException e) {
+                            // Invalid status string, effectively no match
+                            matchesStatus = false;
+                        }
+                    }
+                    return matchesStatus;
+                })
+                .toList(); // Use toList() for an immutable list
 
         for (Room room : rooms) {
             responses.add(buildRoomResponse(room));

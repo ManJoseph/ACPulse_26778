@@ -6,6 +6,8 @@ import Badge from '../common/Badge';
 import { ROOM_STATUS } from '../../utils/constants';
 
 const RoomCard = ({ room }) => {
+  if (!room) return null; // Defensive rendering
+
   const navigate = useNavigate();
 
   const getStatusBadge = (status) => {
@@ -32,20 +34,20 @@ const RoomCard = ({ room }) => {
     >
       <Card.Body>
         <div className="flex justify-between items-start">
-          <h3 className="text-lg font-bold">{room.name}</h3>
+          <h3 className="text-lg font-bold">{room?.roomName}</h3>
           {getStatusBadge(room.status)}
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>{room.location.name}</span>
+            <span>{room?.building} - {room?.floor}</span>
           </div>
         </div>
         <div className="mt-4 border-t border-gray-200 dark:border-dark-700 pt-4">
-          {room.status === ROOM_STATUS.OCCUPIED && room.occupiedBy ? (
+          {room.status === ROOM_STATUS.OCCUPIED && room.currentLecturerName ? (
             <div className="flex items-center gap-2 text-sm">
               <User className="w-4 h-4 text-red-500" />
-              <span>Occupied by <strong>{room.occupiedBy.name}</strong></span>
+              <span>Occupied by <strong>{room.currentLecturerName}</strong></span>
             </div>
           ) : (
             <div className="flex items-center gap-2 text-sm text-green-600">
