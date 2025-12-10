@@ -1,30 +1,10 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Search, Users, DoorOpen } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import Card from '../common/Card';
 import Button from '../common/Button';
 import { useAuthStore } from '../../store/authStore';
+
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore(); // Moved inside the component function
-
-  <Card>
-    <div className={`flex items-center justify-between p-4 rounded-lg bg-white dark:bg-dark-800 shadow`}>
-      <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/50`}>
-        {React.cloneElement(icon, { className: `w-6 h-6 text-${color}-600 dark:text-${color}-400` })}
-      </div>
-      <div className="text-right">
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-      </div>
-    </div>
-  </Card>
-);
-
-const StudentDashboard = () => {
-    const navigate = useNavigate();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
