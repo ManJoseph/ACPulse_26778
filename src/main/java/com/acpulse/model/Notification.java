@@ -10,9 +10,10 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Change from @ManyToOne User to direct userId
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    // Many-to-One: Notification → User
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private String title;
@@ -41,8 +42,8 @@ public class Notification {
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Integer getUserId() { return userId; } // Updated getter
-    public void setUserId(Integer userId) { this.userId = userId; } // Updated setter
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

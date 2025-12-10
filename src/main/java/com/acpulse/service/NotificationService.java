@@ -2,9 +2,9 @@ package com.acpulse.service;
 
 import com.acpulse.dto.response.NotificationResponse;
 import com.acpulse.model.Notification;
-import com.acpulse.model.User; // Keep User import for createNotification and markAsRead checks
+import com.acpulse.model.User;
 import com.acpulse.repository.NotificationRepository;
-import com.acpulse.repository.UserRepository; // Keep UserRepository for createNotification user check
+import com.acpulse.repository.UserRepository;
 import com.acpulse.exception.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,17 +20,16 @@ public class NotificationService {
     private NotificationRepository notificationRepository;
 
     @Autowired
-    private UserRepository userRepository; // Still needed to validate userId in createNotification
+    private UserRepository userRepository;
 
     @Transactional
     public Notification createNotification(Integer userId, String title, String message,
                                            Notification.NotificationType type) {
-        // Validate if user exists before creating notification
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
         
         Notification notification = new Notification();
-        notification.setUserId(userId); // Set direct userId
+        notification.setUser(user); // Set User object
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setNotificationType(type);
@@ -38,19 +37,19 @@ public class NotificationService {
     }
 
     public List<NotificationResponse> getUserNotifications(Integer userId) {
-        List<Notification> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId); // Use new method name
+        List<Notification> notifications = notificationRepository.findByUser_IdOrderByCreatedAtDesc(userId); // Use correct method name
         return notifications.stream()
                 .map(NotificationResponse::new)
                 .collect(Collectors.toList());
     }
 
     public long getUnreadCount(Integer userId) {
-        return notificationRepository.countByUserIdAndIsRead(userId, false); // Use new method name
+        return notificationRepository.countByUser_IdAndIsRead(userId, false); // Use correct method name
     }
 
     @Transactional
     public void markAllAsRead(Integer userId) {
-        notificationRepository.findByUserIdAndIsRead(userId, false) // Use new method name
+        notificationRepository.findByUser_IdAndIsRead(userId, false) // Use correct method name
                 .forEach(notification -> {
                     notification.setIsRead(true);
                     notification.setReadAt(LocalDateTime.now());
@@ -61,7 +60,7 @@ public class NotificationService {
     @Transactional
     public void markAsRead(Integer notificationId, Integer userId) {
         notificationRepository.findById(notificationId).ifPresent(notification -> {
-            if (notification.getUserId().equals(userId)) { // Check direct userId
+            if (notification.getUser() != null && notification.getUser().getId().equals(userId)) { // Check User object's ID
                 notification.setIsRead(true);
                 notification.setReadAt(LocalDateTime.now());
                 notificationRepository.save(notification);

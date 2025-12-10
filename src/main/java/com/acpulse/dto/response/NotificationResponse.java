@@ -18,7 +18,7 @@ public class NotificationResponse {
     private LocalDateTime createdAt;
     private LocalDateTime readAt;
     private Integer userId;
-    // Removed userName as Notification entity no longer directly holds User object
+    private String userName; // Re-added userName
 
     public NotificationResponse(Notification notification) {
         this.id = notification.getId();
@@ -28,6 +28,9 @@ public class NotificationResponse {
         this.isRead = notification.getIsRead();
         this.createdAt = notification.getCreatedAt();
         this.readAt = notification.getReadAt();
-        this.userId = notification.getUserId(); // Direct access to userId
+        if (notification.getUser() != null) { // Access User object
+            this.userId = notification.getUser().getId();
+            this.userName = notification.getUser().getName(); // Get userName from User object
+        }
     }
 }

@@ -61,6 +61,10 @@ public class User {
     @JsonIgnore
     private List<VerificationRequest> verificationRequests = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
+    private List<Notification> notifications = new ArrayList<>();
+
     // One-to-Many: User → Room (as currentLecturer)
     @OneToMany(mappedBy = "currentLecturer", fetch = FetchType.LAZY)
     @JsonIgnore
@@ -126,6 +130,9 @@ public class User {
 
     public List<VerificationRequest> getVerificationRequests() { return verificationRequests; }
     public void setVerificationRequests(List<VerificationRequest> verificationRequests) { this.verificationRequests = verificationRequests; }
+
+    public List<Notification> getNotifications() { return notifications; }
+    public void setNotifications(List<Notification> notifications) { this.notifications = notifications; }
 
     public List<Room> getOccupiedRooms() { return occupiedRooms; }
     public void setOccupiedRooms(List<Room> occupiedRooms) { this.occupiedRooms = occupiedRooms; }
