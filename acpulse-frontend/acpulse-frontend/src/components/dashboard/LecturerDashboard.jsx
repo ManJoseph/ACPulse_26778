@@ -18,7 +18,7 @@ import { LECTURER_STATUS } from '../../utils/constants';
 const UpdateStatusModal = ({ isOpen, onClose, currentStatus }) => {
     const { register, handleSubmit, formState: { isSubmitting } } = useForm({
         defaultValues: {
-            status: currentStatus?.status || LECTURER_STATUSES.AVAILABLE,
+            status: currentStatus?.status || LECTURER_STATUS.AVAILABLE,
             message: currentStatus?.message || '',
         }
     });
@@ -44,7 +44,7 @@ const UpdateStatusModal = ({ isOpen, onClose, currentStatus }) => {
                     id="status"
                     {...register('status')}
                 >
-                    {Object.values(LECTURER_STATUSES).map(status => (
+                    {Object.values(LECTURER_STATUS).map(status => (
                         <option key={status} value={status}>{status}</option>
                     ))}
                 </Select>
