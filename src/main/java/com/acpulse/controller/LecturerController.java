@@ -2,7 +2,7 @@ package com.acpulse.controller;
 
 import com.acpulse.dto.request.UpdateStatusRequest;
 import com.acpulse.service.LecturerService;
-import com.acpulse.service.LecturerService.LecturerResponse; // Import the new LecturerResponse DTO
+import com.acpulse.dto.response.LecturerResponse; // Corrected import
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

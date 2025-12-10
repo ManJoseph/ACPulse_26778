@@ -25,10 +25,12 @@ public class RoomController {
         return ResponseEntity.ok(response);
     }
 
-    //  Get all rooms
+    //  Get all rooms with optional search and status filters
     @GetMapping("/rooms")
-    public ResponseEntity<List<RoomResponse>> getAllRooms() {
-        List<RoomResponse> response = roomService.getAllRooms();
+    public ResponseEntity<List<RoomResponse>> getAllRooms(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status) {
+        List<RoomResponse> response = roomService.getAllRooms(search, status);
         return ResponseEntity.ok(response);
     }
 
