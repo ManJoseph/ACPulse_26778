@@ -16,6 +16,14 @@ public class LectureSchedule {
     @JoinColumn(name = "lecturer_id", nullable = false)
     private User lecturer; // Assuming User entity represents the lecturer
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "semester_id")
+    private Semester semester;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
@@ -38,6 +46,12 @@ public class LectureSchedule {
 
     public User getLecturer() { return lecturer; }
     public void setLecturer(User lecturer) { this.lecturer = lecturer; }
+
+    public Room getRoom() { return room; }
+    public void setRoom(Room room) { this.room = room; }
+
+    public Semester getSemester() { return semester; }
+    public void setSemester(Semester semester) { this.semester = semester; }
 
     public DayOfWeek getDayOfWeek() { return dayOfWeek; }
     public void setDayOfWeek(DayOfWeek dayOfWeek) { this.dayOfWeek = dayOfWeek; }

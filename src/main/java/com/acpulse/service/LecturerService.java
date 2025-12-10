@@ -25,6 +25,9 @@ public class LecturerService {
     @Autowired
     private LectureScheduleRepository lectureScheduleRepository; // New autowired repository
 
+    @Autowired
+    private RoomRepository roomRepository;
+
     public List<LecturerResponse> getLecturers(String search, String status, int page, int size) {
         List<User> lecturers = userRepository.findByRole_RoleName("LECTURER");
 
@@ -77,6 +80,69 @@ public class LecturerService {
             responses.add(response);
         }
         return responses;
+    }
+
+    // New method: Search lecturers by name
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> searchLecturers(String query) {
+        List<User> lecturers = userRepository.findByNameContainingIgnoreCaseAndRole_RoleName(query, "LECTURER");
+        return lecturers.stream()
+                .map(lecturer -> {
+                    Map<String, Object> lecturerMap = new HashMap<>();
+                    lecturerMap.put("id", lecturer.getId());
+                    lecturerMap.put("name", lecturer.getName());
+                    return lecturerMap;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // New method: Get lecturer's current status
+    @Transactional(readOnly = true)
+    public Map<String, Object> getLecturerStatus(Integer lecturerId) {
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
+
+        Optional<LecturerStatus> activeStatusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
+
+        Map<String, Object> statusMap = new HashMap<>();
+        if (activeStatusOpt.isPresent()) {
+            LecturerStatus activeStatus = activeStatusOpt.get();
+            statusMap.put("status", activeStatus.getStatus());
+            statusMap.put("updatedAt", activeStatus.getStatusStartTime());
+            if (activeStatus.getCurrentRoom() != null) {
+                statusMap.put("office", activeStatus.getCurrentRoom().getRoomName());
+            }
+        } else {
+            statusMap.put("status", "UNKNOWN");
+        }
+        return statusMap;
+    }
+
+    // New method: Update lecturer's status
+    @Transactional
+    public Map<String, String> updateStatus(Integer lecturerId, UpdateStatusRequest request) {
+        User lecturer = userRepository.findById(lecturerId)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
+
+        // Deactivate current status
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true).ifPresent(oldStatus -> {
+            oldStatus.setIsActive(false);
+            lecturerStatusRepository.save(oldStatus);
+        });
+
+        // Create new status
+        LecturerStatus newStatus = new LecturerStatus();
+        newStatus.setLecturer(lecturer);
+        newStatus.setStatus(LecturerStatus.Status.valueOf(request.getStatus().toUpperCase()));
+        newStatus.setCustomMessage(request.getCustomMessage());
+        newStatus.setStatusStartTime(LocalDateTime.now());
+        newStatus.setIsActive(true);
+
+        lecturerStatusRepository.save(newStatus);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Lecturer status updated successfully.");
+        return response;
     }
 
     // New method: Get lecturer's schedule

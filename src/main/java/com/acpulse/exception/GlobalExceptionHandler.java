@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -51,6 +53,7 @@ public class GlobalExceptionHandler {
     // Existing generic Exception handler (updated to include exception message for debugging)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("❌ An unexpected error occurred: ", ex); // This will show the full stack trace
         ErrorResponse error = new ErrorResponse(500, "An unexpected error occurred: " + ex.getMessage(), LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

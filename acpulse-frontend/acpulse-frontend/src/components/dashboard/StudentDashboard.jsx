@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Button from '../common/Button';
+import Card from '../common/Card';
+import { DoorOpen, Users, Search } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 
@@ -43,15 +47,7 @@ const StudentDashboard = () => {
                 <Search className="mr-2 h-4 w-4" /> Search Lecturers
             </Button>
         </Card>
-         <Card className="flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-dark-800 dark:to-dark-900">
-            <h3 className="text-lg font-semibold mb-2">Need to get verified?</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                If you are a lecturer or staff, you can request verification to access more features.
-            </p>
-            <Button onClick={() => navigate('/profile')} variant="outline" className="w-full">
-                Go to Profile
-            </Button>
-        </Card>
+
       </div>
       
     </motion.div>
