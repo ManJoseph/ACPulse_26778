@@ -18,7 +18,7 @@ public class NotificationResponse {
     private LocalDateTime createdAt;
     private LocalDateTime readAt;
     private Integer userId;
-    private String userName; // Potentially include user's name if needed by frontend
+    // Removed userName as Notification entity no longer directly holds User object
 
     public NotificationResponse(Notification notification) {
         this.id = notification.getId();
@@ -28,9 +28,6 @@ public class NotificationResponse {
         this.isRead = notification.getIsRead();
         this.createdAt = notification.getCreatedAt();
         this.readAt = notification.getReadAt();
-        if (notification.getUser() != null) {
-            this.userId = notification.getUser().getId();
-            this.userName = notification.getUser().getName();
-        }
+        this.userId = notification.getUserId(); // Direct access to userId
     }
 }
