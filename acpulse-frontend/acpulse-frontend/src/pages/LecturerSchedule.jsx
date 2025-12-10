@@ -12,7 +12,7 @@ import EmptyState from '../components/common/EmptyState';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import { useAuthStore } from '../store/authStore';
-import { lecturerService } from '../services/lecturerService'; // Assuming this service will handle schedule API
+import lecturerService from '../services/lecturerService';
 import { LECTURER_STATUS } from '../utils/constants'; // For possible schedule related statuses
 
 // Helper to format time for display/input
