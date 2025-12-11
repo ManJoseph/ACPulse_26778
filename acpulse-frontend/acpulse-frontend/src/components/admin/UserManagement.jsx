@@ -48,81 +48,155 @@ const UserManagement = () => {
         setFilters(prev => ({ ...prev, [e.target.name]: e.target.value, page: 0 }));
     };
     
-    const handlePageChange = (newPage) => {
-        setFilters(prev => ({...prev, page: newPage}));
-    };
-
-    const columns = useMemo(() => [
-        {
-            key: 'name',
-            label: 'Name',
-            render: (_, row) => (
-                <div className="flex items-center gap-3">
-                    <Avatar name={row.name} src={row.profilePicture} size="sm" />
-                    <div>
-                        <p className="font-medium">{row.name}</p>
-                        <p className="text-xs text-gray-500">{row.email}</p>
-                    </div>
-                </div>
-            )
-        },
-        { key: 'role', label: 'Role', render: (role) => <Badge>{role}</Badge> },
-        { key: 'department', label: 'Department' },
-        {
-            key: 'createdAt',
-            label: 'Date Registered',
-            render: (date) => format(new Date(date), 'MMM d, yyyy')
-        },
-        {
-            key: 'actions',
-            label: 'Actions',
-            render: (_, row) => (
-                 <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setAction({ type: 'edit', user: row })}>
-                        <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => setAction({ type: 'delete', user: row })}>
-                        <Trash2 className="w-4 h-4" />
-                    </Button>
-                </div>
-            )
-        }
-    ], []);
+        const handlePageChange = (newPage) => {
     
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-                 <Button>
-                    <UserPlus className="mr-2 h-4 w-4" /> Add User
-                </Button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-4">
-                <Input name="search" placeholder="Search by name or email..." value={filters.search} onChange={handleFilterChange} className="flex-1" />
-                <Select name="role" value={filters.role} onChange={handleFilterChange}>
-                    <option value="">All Roles</option>
-                    {Object.values(ROLES).map(role => <option key={role} value={role}>{role}</option>)}
-                </Select>
-            </div>
-
-            {isLoading && <LoadingSpinner />}
-            {error && <EmptyState title="Error" description={error.message} />}
-            {!isLoading && !error && (
-                <>
-                <Table
-                    columns={columns}
-                    data={usersPage?.content || []}
-                    emptyMessage="No users found."
-                />
-                <Pagination 
-                    currentPage={usersPage?.number}
-                    totalPages={usersPage?.totalPages}
-                    onPageChange={handlePageChange}
-                />
-                </>
-            )}
+            setFilters(prev => ({...prev, page: newPage - 1})); // Adjust to 0-based index for backend
+    
+        };
+    
+    
+    
+        const columns = useMemo(() => [
+    
+            {
+    
+                key: 'name',
+    
+                label: 'Name',
+    
+                render: (_, row) => (
+    
+                    <div className="flex items-center gap-3">
+    
+                        <Avatar name={row.name} src={row.profilePicture} size="sm" />
+    
+                        <div>
+    
+                            <p className="font-medium">{row.name}</p>
+    
+                            <p className="text-xs text-gray-500">{row.email}</p>
+    
+                        </div>
+    
+                    </div>
+    
+                )
+    
+            },
+    
+            { key: 'role', label: 'Role', render: (role) => <Badge>{role}</Badge> },
+    
+            { key: 'department', label: 'Department' },
+    
+            {
+    
+                key: 'createdAt',
+    
+                label: 'Date Registered',
+    
+                render: (date) => format(new Date(date), 'MMM d, yyyy')
+    
+            },
+    
+            {
+    
+                key: 'actions',
+    
+                label: 'Actions',
+    
+                render: (_, row) => (
+    
+                     <div className="flex gap-2">
+    
+                        <Button size="sm" variant="outline" onClick={() => setAction({ type: 'edit', user: row })}>
+    
+                            <Edit className="w-4 h-4" />
+    
+                        </Button>
+    
+                        <Button size="sm" variant="danger" onClick={() => setAction({ type: 'delete', user: row })}>
+    
+                            <Trash2 className="w-4 h-4" />
+    
+                        </Button>
+    
+                    </div>
+    
+                )
+    
+            }
+    
+        ], []);
+    
+        
+    
+        return (
+    
+            <div className="space-y-6">
+    
+                <div className="flex justify-between items-center">
+    
+                    <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+    
+                     <Button>
+    
+                        <UserPlus className="mr-2 h-4 w-4" /> Add User
+    
+                    </Button>
+    
+                </div>
+    
+    
+    
+                {/* Filters */}
+    
+                <div className="flex gap-4">
+    
+                    <Input name="search" placeholder="Search by name or email..." value={filters.search} onChange={handleFilterChange} className="flex-1" />
+    
+                    <Select name="role" value={filters.role} onChange={handleFilterChange}>
+    
+                        <option value="">All Roles</option>
+    
+                        {Object.values(ROLES).map(role => <option key={role} value={role}>{role}</option>)}
+    
+                    </Select>
+    
+                </div>
+    
+    
+    
+                {isLoading && <LoadingSpinner />}
+    
+                {error && <EmptyState title="Error" description={error.message} />}
+    
+                {!isLoading && !error && (
+    
+                    <>
+    
+                    <Table
+    
+                        columns={columns}
+    
+                        data={usersPage?.content || []}
+    
+                        emptyMessage="No users found."
+    
+                    />
+    
+                    <Pagination 
+    
+                        currentPage={usersPage?.number + 1} // Display 1-based page number
+    
+                        totalPages={usersPage?.totalPages}
+    
+                        onPageChange={handlePageChange}
+    
+                    />
+    
+                    </>
+    
+                )}
 
             {/* Action Modals */}
              {action?.type === 'edit' && (

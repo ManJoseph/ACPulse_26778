@@ -66,4 +66,34 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendOtpEmail(String to, String otp) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Your Login OTP Code");
+        message.setText("Your OTP is: " + otp + " (expires in 5 minutes)");
+        mailSender.send(message);
+    }
+
+    public void sendPasswordResetEmail(User user, String token) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("yourgmail@gmail.com"); // Match sender with config
+        message.setTo(user.getEmail());
+        message.setSubject("ACPulse - Password Reset Request Approved");
+        
+        // TODO: Replace localhost with the actual frontend URL from application properties
+        String resetUrl = "http://localhost:5173/reset-password?token=" + token;
+
+        message.setText(
+                "Dear " + user.getName() + ",\n\n" +
+                "Your request to reset your password has been approved.\n\n" +
+                "Please click the link below to set a new password:\n" +
+                resetUrl + "\n\n" +
+                "This link will expire in 1 hour.\n\n" +
+                "If you did not request a password reset, please ignore this email or contact support.\n\n" +
+                "Best regards,\n" +
+                "The ACPulse Team"
+        );
+        mailSender.send(message);
+    }
 }

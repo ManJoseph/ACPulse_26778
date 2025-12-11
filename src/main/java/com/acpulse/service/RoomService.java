@@ -8,6 +8,8 @@ import com.acpulse.exception.NotFoundException;
 import com.acpulse.model.*;
 import com.acpulse.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page; // Added import
+import org.springframework.data.domain.Pageable; // Added import
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -32,43 +34,22 @@ public class RoomService {
         return buildRoomResponse(room);
     }
 
-    public List<RoomResponse> getAllRooms(String search, String status) {
-        List<Room> rooms = roomRepository.findAll();
-        List<RoomResponse> responses = new ArrayList<>();
-
-        // Apply filters
-        rooms = rooms.stream()
-                .filter(room -> {
-                    boolean matchesSearch = true;
-                    if (search != null && !search.trim().isEmpty()) {
-                        String lowerCaseSearch = search.toLowerCase();
-                        matchesSearch = room.getRoomNumber().toLowerCase().contains(lowerCaseSearch) ||
-                                room.getRoomName().toLowerCase().contains(lowerCaseSearch) ||
-                                room.getBuilding().toLowerCase().contains(lowerCaseSearch) ||
-                                room.getFloor().toLowerCase().contains(lowerCaseSearch);
-                    }
-                    return matchesSearch;
-                })
-                .filter(room -> {
-                    boolean matchesStatus = true;
-                    if (status != null && !status.trim().isEmpty()) {
-                        try {
-                            Room.RoomStatus roomStatus = Room.RoomStatus.valueOf(status.toUpperCase());
-                            matchesStatus = room.getStatus() == roomStatus;
-                        } catch (IllegalArgumentException e) {
-                            // Invalid status string, effectively no match
-                            matchesStatus = false;
-                        }
-                    }
-                    return matchesStatus;
-                })
-                .toList(); // Use toList() for an immutable list
-
-        for (Room room : rooms) {
-            responses.add(buildRoomResponse(room));
+    public Page<RoomResponse> getAllRooms(String search, String status, Pageable pageable) {
+        Page<Room> roomPage;
+        if (search != null && !search.trim().isEmpty()) {
+            if (status != null && !status.trim().isEmpty()) {
+                roomPage = roomRepository.findByStatusAndRoomNameContainingIgnoreCase(Room.RoomStatus.valueOf(status.toUpperCase()), search, pageable);
+            } else {
+                roomPage = roomRepository.findByRoomNameContainingIgnoreCase(search, pageable);
+            }
+        } else {
+            if (status != null && !status.trim().isEmpty()) {
+                roomPage = roomRepository.findByStatus(Room.RoomStatus.valueOf(status.toUpperCase()), pageable);
+            } else {
+                roomPage = roomRepository.findAll(pageable);
+            }
         }
-
-        return responses;
+        return roomPage.map(this::buildRoomResponse);
     }
 
     @Transactional

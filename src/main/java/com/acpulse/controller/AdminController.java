@@ -1,5 +1,6 @@
 package com.acpulse.controller;
 
+import com.acpulse.model.PasswordResetRequest;
 import com.acpulse.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -29,8 +30,9 @@ public class AdminController {
     @GetMapping("/verification-requests")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getVerificationRequests(
-            @RequestParam(required = false, defaultValue = "PENDING") String status) {
-        List<Map<String, Object>> response = adminService.getVerificationRequests(status);
+            @RequestParam(required = false, defaultValue = "PENDING") String status,
+            @RequestParam(required = false, defaultValue = "") String search) {
+        List<Map<String, Object>> response = adminService.getVerificationRequests(status, search);
         return ResponseEntity.ok(response);
     }
 
@@ -82,5 +84,18 @@ public class AdminController {
     public ResponseEntity<Void> deleteUser(@PathVariable("id") Integer userId) {
         adminService.deleteUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/password-reset-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> getPasswordResetRequests() {
+        return ResponseEntity.ok(adminService.getPasswordResetRequests());
+    }
+
+    @PostMapping("/password-reset-requests/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> approvePasswordResetRequest(@PathVariable Integer id, @RequestParam Integer adminId) {
+        adminService.approvePasswordReset(id, adminId);
+        return ResponseEntity.ok().build();
     }
 }

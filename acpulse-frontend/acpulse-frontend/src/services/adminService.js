@@ -8,8 +8,9 @@ const adminService = {
   },
 
   // Get verification requests
-  getVerificationRequests: async (status = 'PENDING') => {
-    const response = await api.get(`/admin/verification-requests?status=${status}`);
+  getVerificationRequests: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const response = await api.get('/admin/verification-requests', { params });
     return response.data;
   },
 
@@ -43,6 +44,18 @@ const adminService = {
   // Delete a user
   deleteUser: async (userId) => {
     const response = await api.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  // Get password reset requests
+  getPasswordResetRequests: async () => {
+    const response = await api.get('/admin/password-reset-requests');
+    return response.data;
+  },
+
+  // Approve a password reset request
+  approvePasswordResetRequest: async ({ requestId, adminId }) => {
+    const response = await api.post(`/admin/password-reset-requests/${requestId}/approve?adminId=${adminId}`);
     return response.data;
   },
 };

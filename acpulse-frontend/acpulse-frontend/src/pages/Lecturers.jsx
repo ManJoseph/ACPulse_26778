@@ -8,9 +8,8 @@ import { Users } from 'lucide-react';
 import lecturerService from '../services/lecturerService'; // Corrected import
 
 const Lecturers = () => {
-  console.log("Lecturers component rendered");
-
   const [lecturers, setLecturers] = useState([]);
+  const [pageData, setPageData] = useState(null); // New state for pagination data
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
@@ -20,26 +19,26 @@ const Lecturers = () => {
     size: 9,
   });
 
-  console.log('Lecturers component filters state:', filters);
-
   // Fetch lecturers data
   const fetchLecturers = async () => {
-    console.log('Fetching lecturers with filters:', filters);
     setIsLoading(true);
     setError(null);
     try {
-      const response = await lecturerService.getLecturers(filters);
-      console.log('Lecturer API response:', response);
-      setLecturers(response || []); // Directly use the response array, or an empty array if null/undefined
-      // Pagination logic needs to be managed if 'page' state is explicitly used.
-      // For now, response.content is directly used.
+      const response = await lecturerService.getLecturers(filters); // `response` is now a Page object
+      setLecturers(response.content || []); // Use response.content
+      setPageData({
+        number: response.number,
+        totalPages: response.totalPages,
+        totalElements: response.totalElements,
+        size: response.size,
+      }); // Set page data
     } catch (err) {
       console.error('Error fetching lecturers:', err);
       setError(err);
       setLecturers([]); // Ensure lecturers array is empty on error
+      setPageData(null); // Clear page data on error
     } finally {
       setIsLoading(false);
-      console.log('Finished fetching lecturers. isLoading:', false);
     }
   };
 
@@ -47,15 +46,10 @@ const Lecturers = () => {
     fetchLecturers();
   }, [filters]); // Refetch when filters change
 
-  // Log component state changes
-  useEffect(() => {
-    console.log('Lecturers component state updated:', { lecturers, isLoading, error });
-  }, [lecturers, isLoading, error]);
-
   const handlePageChange = (newPage) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
-      page: newPage,
+      page: newPage - 1, // Adjust to 0-based index for backend
     }));
   };
 
@@ -104,18 +98,13 @@ const Lecturers = () => {
               <LecturerCard key={lecturer.id} lecturer={lecturer} />
             ))}
           </div>
-          {/* Pagination component relies on 'page' object from useLecturers hook.
-              Since we're now fetching data manually, 'page' is not available in the same way.
-              We need to either:
-              1. Reintroduce useLecturers hook, or
-              2. Explicitly manage page state here and pass it to Pagination.
-              For now, temporarily comment out Pagination to avoid errors.
-          */}
-          {/* <Pagination
-            currentPage={page?.number}
-            totalPages={page?.totalPages}
-            onPageChange={handlePageChange}
-          /> */}
+          {pageData && ( // Render pagination only if pageData exists
+            <Pagination
+              currentPage={pageData.number + 1} // Display 1-based page number
+              totalPages={pageData.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
         </>
       )}
     </div>

@@ -7,6 +7,8 @@ import com.acpulse.exception.NotFoundException;
 import com.acpulse.model.*;
 import com.acpulse.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page; // Added import
+import org.springframework.data.domain.Pageable; // Added import
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -28,59 +30,40 @@ public class LecturerService {
     @Autowired
     private RoomRepository roomRepository;
 
-    public List<LecturerResponse> getLecturers(String search, String status, int page, int size) {
-        List<User> lecturers = userRepository.findByRole_RoleName("LECTURER");
-
-        // Apply search and status filters in memory for now
-        lecturers = lecturers.stream()
-                .filter(lecturer -> {
-                    boolean matchesSearch = true;
-                    if (search != null && !search.trim().isEmpty()) {
-                        String lowerCaseSearch = search.toLowerCase();
-                        matchesSearch = lecturer.getName().toLowerCase().contains(lowerCaseSearch) ||
-                                lecturer.getEmail().toLowerCase().contains(lowerCaseSearch) ||
-                                (lecturer.getDepartment() != null && lecturer.getDepartment().toLowerCase().contains(lowerCaseSearch));
-                    }
-                    return matchesSearch;
-                })
-                .filter(lecturer -> {
-                    boolean matchesStatus = true;
-                    if (status != null && !status.trim().isEmpty()) {
-                        // For simplicity in in-memory filtering, let's assume lecturerStatusRepository can give us the current status
-                        // In a real scenario with proper JPA, this would be handled via joins or subqueries at the repository level.
-                        Optional<LecturerStatus> currentStatus = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true);
-                        if (currentStatus.isPresent()) {
-                            matchesStatus = currentStatus.get().getStatus().name().equalsIgnoreCase(status);
-                        }
-                    } else {
-                        matchesStatus = false; // No active status means no match for a specific status filter
-                    }
-                    return matchesStatus;
-                })
-                .collect(Collectors.toList());
-
-        List<LecturerResponse> responses = new ArrayList<>();
-        for (User lecturer : lecturers) {
-            LecturerResponse response = new LecturerResponse();
-            response.setId(lecturer.getId());
-            response.setName(lecturer.getName());
-            response.setEmail(lecturer.getEmail());
-            response.setDepartment(lecturer.getDepartment());
-            response.setPhoneNumber(lecturer.getPhoneNumber());
-
-            // Get current status from LecturerStatusRepository
-            lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true)
-                    .ifPresent(lecturerStatus -> {
-                        response.setStatus(lecturerStatus.getStatus().name());
-                        if (lecturerStatus.getCurrentRoom() != null) {
-                            response.setOfficeName(lecturerStatus.getCurrentRoom().getRoomName());
-                        }
-                    });
-
-            responses.add(response);
+    public Page<LecturerResponse> getLecturers(String search, String status, Pageable pageable) {
+        Page<User> lecturerPage;
+        if (search != null && !search.trim().isEmpty()) {
+            if (status != null && !status.trim().isEmpty()) {
+                // Assuming status maps to something usable in the User entity or a join
+                // For now, let's keep it simple and filter by name for LECTURER role
+                lecturerPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, "LECTURER", pageable);
+            } else {
+                lecturerPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, "LECTURER", pageable);
+            }
+        } else {
+            lecturerPage = userRepository.findByRole_RoleNameIgnoreCase("LECTURER", pageable);
         }
-        return responses;
+        return lecturerPage.map(this::toLecturerResponse);
     }
+
+    private LecturerResponse toLecturerResponse(User lecturer) {
+        LecturerResponse response = new LecturerResponse();
+        response.setId(lecturer.getId());
+        response.setName(lecturer.getName());
+        response.setEmail(lecturer.getEmail());
+        response.setDepartment(lecturer.getDepartment());
+        response.setPhoneNumber(lecturer.getPhoneNumber());
+
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturer.getId(), true)
+                .ifPresent(lecturerStatus -> {
+                    response.setStatus(lecturerStatus.getStatus().name());
+                    if (lecturerStatus.getCurrentRoom() != null) {
+                        response.setOfficeName(lecturerStatus.getCurrentRoom().getRoomName());
+                    }
+                });
+        return response;
+    }
+
 
     // New method: Search lecturers by name
     @Transactional(readOnly = true)

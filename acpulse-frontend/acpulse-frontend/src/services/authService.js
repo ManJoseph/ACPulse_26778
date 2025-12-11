@@ -35,6 +35,32 @@ const authService = {
   },
 
   /**
+   * Verifies the two-factor authentication OTP.
+   * @param {object} data - The OTP verification data.
+   * @param {string} data.email - The user's email.
+   * @param {string} data.otp - The one-time password.
+   * @returns {Promise<object>} The response data, including the final JWT.
+   */
+  verifyOtp: async (data) => {
+    try {
+      const response = await api.post('/auth/verify-otp', data);
+      return response.data;
+    } catch (error) {
+      if (!error.response) {
+        if (error.request) {
+          throw new Error('No response from server. Check network or backend status.');
+        } else {
+          throw new Error(error.message || 'Error setting up OTP verification request.');
+        }
+      }
+      
+      const errorData = error.response.data;
+      const errorMessage = errorData?.message || errorData?.error || 'OTP verification failed.';
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
    * Registers a new user.
    * @param {object} userData - The data for the new user.
    * @returns {Promise<object>} The response data from the server.
@@ -63,9 +89,9 @@ const authService = {
    * @param {string} email - The user's email address.
    * @returns {Promise<object>} The response data from the server.
    */
-  forgotPassword: async (email) => {
+  forgotPassword: async (data) => {
     try {
-      const response = await api.post('/auth/forgot-password', { email });
+      const response = await api.post('/auth/forgot-password', data);
       return response.data;
     } catch (error) {
       if (!error.response) {
@@ -87,9 +113,9 @@ const authService = {
    * @param {string} newPassword - The new password.
    * @returns {Promise<object>} The response data from the server.
    */
-  resetPassword: async (token, newPassword) => {
+  resetPassword: async (data) => {
     try {
-      const response = await api.post('/auth/reset-password', { token, newPassword });
+      const response = await api.post('/auth/reset-password', data);
       return response.data;
     } catch (error) {
       if (!error.response) {

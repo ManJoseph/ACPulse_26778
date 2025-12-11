@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Calendar,
   Menu,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '../../utils/helpers';
 import { ROLES } from '../../utils/constants';
@@ -85,6 +86,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, user }) => {
           label: 'User Management',
           icon: Users,
           path: '/admin/users',
+        },
+        {
+          label: 'Password Resets',
+          icon: KeyRound,
+          path: '/admin/password-resets',
         },
       ],
     };

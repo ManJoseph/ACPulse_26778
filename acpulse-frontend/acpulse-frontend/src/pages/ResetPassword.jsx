@@ -1,79 +1,89 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Lock, CheckCircle } from 'lucide-react';
+import authService from '../services/authService';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
-import Card from '../components/common/Card';
+import { Modal } from '../components/common';
 import { validationRules } from '../utils/validators';
 
 const ResetPassword = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
+    const [isSuccess, setIsSuccess] = useState(false);
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+    const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm();
+    const password = watch('password');
 
     const onSubmit = async (data) => {
-        if (data.newPassword !== data.confirmPassword) {
-            toast.error('New passwords do not match.');
-            return;
-        }
         try {
-            // Here you would call your auth service to reset the password
-            await authService.resetPassword(token, data.newPassword);
+            await authService.resetPassword({ token, password: data.password });
             toast.success('Password has been reset successfully!');
-            navigate('/login');
+            setIsSuccess(true);
         } catch (error) {
             toast.error(error.message || 'Failed to reset password. The link may be invalid or expired.');
+            navigate('/forgot-password');
         }
     };
 
-    if (!token) {
+    useEffect(() => {
+        if (!token) {
+            toast.error('Invalid or missing password reset token.');
+            navigate('/forgot-password');
+        }
+    }, [token, navigate]);
+    
+    if (isSuccess) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <h1 className="text-2xl font-bold">Invalid Reset Link</h1>
-                <p className="mt-2">The password reset link is missing or invalid.</p>
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-950 p-4">
+                <Modal isOpen={true} onClose={() => navigate('/login')} title="Success!">
+                    <div className="text-center p-4">
+                        <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                        <h2 className="text-xl font-bold mb-2">Password Reset Successful</h2>
+                        <p className="text-gray-600 dark:text-gray-400 mb-6">You can now log in with your new password.</p>
+                        <Link to="/login">
+                            <Button variant="primary">Go to Login</Button>
+                        </Link>
+                    </div>
+                </Modal>
             </div>
-        )
+        );
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-950 p-4">
-            <div className="w-full max-w-md">
-                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold gradient-text">Reset Your Password</h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">
-                        Choose a new password for your account.
+            <Modal isOpen={true} onClose={() => navigate('/login')} title="Reset Your Password">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Choose a new, strong password for your account.
                     </p>
-                </div>
-                <Card>
-                    <Card.Body>
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                            <Input
-                                label="New Password"
-                                id="newPassword"
-                                type="password"
-                                leftIcon={<Lock />}
-                                error={errors.newPassword?.message}
-                                {...register('newPassword', validationRules.password)}
-                            />
-                            <Input
-                                label="Confirm New Password"
-                                id="confirmPassword"
-                                type="password"
-                                leftIcon={<Lock />}
-                                error={errors.confirmPassword?.message}
-                                {...register('confirmPassword', validationRules.password)}
-                            />
-                            <Button type="submit" variant="primary" className="w-full" loading={isSubmitting}>
-                                Reset Password
-                            </Button>
-                        </form>
-                    </Card.Body>
-                </Card>
-            </div>
+                    <Input
+                        label="New Password"
+                        id="password"
+                        type="password"
+                        leftIcon={<Lock />}
+                        error={errors.password?.message}
+                        {...register('password', validationRules.password)}
+                    />
+                    <Input
+                        label="Confirm New Password"
+                        id="confirmPassword"
+                        type="password"
+                        leftIcon={<Lock />}
+                        error={errors.confirmPassword?.message}
+                        {...register('confirmPassword', {
+                            ...validationRules.password,
+                            validate: value => value === password || "Passwords do not match"
+                        })}
+                    />
+                    <Button type="submit" variant="primary" className="w-full" loading={isSubmitting}>
+                        Set New Password
+                    </Button>
+                </form>
+            </Modal>
         </div>
     );
 };

@@ -1,46 +1,58 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Check, X, Clock, User } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { adminService } from '../../services';
-import { Table, Button, LoadingSpinner, EmptyState, Modal, Badge, Avatar } from '../common';
+import { Table, Button, LoadingSpinner, EmptyState, Modal, Avatar, Input } from '../common';
 import { VERIFICATION_STATUS } from '../../utils/constants';
-import { useAuthStore } from '../../store/authStore'; // Added import
+import { useAuthStore } from '../../store/authStore';
+import useDebounce from '../../hooks/useDebounce';
 
 const VerificationRequests = () => {
     const queryClient = useQueryClient();
-    const user = useAuthStore((state) => state.user); // Get logged-in user
-    const adminId = user?.userId; // Extract userId as adminId
-    const [statusFilter, setStatusFilter] = useState(VERIFICATION_STATUS.PENDING);
-    const [action, setAction] = useState(null); // { type: 'approve' | 'reject', request: {...} }
+    const user = useAuthStore((state) => state.user);
+    const adminId = user?.userId;
+    
+    const [filters, setFilters] = useState({
+        status: VERIFICATION_STATUS.PENDING,
+        search: '',
+    });
+    const debouncedSearch = useDebounce(filters.search, 500);
+    const [action, setAction] = useState(null);
 
+    const queryFilters = { ...filters, search: debouncedSearch };
 
     const { data: requests, isLoading, error } = useQuery({
-        queryKey: ['verificationRequests', statusFilter],
-        queryFn: () => adminService.getVerificationRequests(statusFilter)
+        queryKey: ['verificationRequests', queryFilters],
+        queryFn: () => adminService.getVerificationRequests(queryFilters),
+        keepPreviousData: true,
     });
 
     const approveMutation = useMutation({
         mutationFn: ({ requestId, adminId }) => adminService.approveUser(requestId, adminId),
         onSuccess: () => {
             toast.success('User approved successfully!');
-            queryClient.invalidateQueries('verificationRequests');
+            queryClient.invalidateQueries({ queryKey: ['verificationRequests'] });
             setAction(null);
         },
         onError: (err) => toast.error(err.message || 'Failed to approve user.'),
     });
 
     const rejectMutation = useMutation({
-        mutationFn: ({ requestId, reason, adminId }) => adminService.rejectUser(requestId, reason, adminId),
+        mutationFn: ({ requestId, reason }) => adminService.rejectUser(requestId, reason),
         onSuccess: () => {
             toast.success('User rejected successfully!');
-            queryClient.invalidateQueries('verificationRequests');
+            queryClient.invalidateQueries({ queryKey: ['verificationRequests'] });
             setAction(null);
         },
         onError: (err) => toast.error(err.message || 'Failed to reject user.'),
     });
+    
+    const handleFilterChange = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
 
     const columns = useMemo(() => [
         {
@@ -67,7 +79,7 @@ const VerificationRequests = () => {
             key: 'actions',
             label: 'Actions',
             render: (_, row) => (
-                statusFilter === VERIFICATION_STATUS.PENDING && (
+                filters.status === VERIFICATION_STATUS.PENDING && (
                     <div className="flex gap-2">
                         <Button size="sm" variant="success" onClick={() => setAction({ type: 'approve', request: row })}>
                             <Check className="w-4 h-4" /> Approve
@@ -79,23 +91,32 @@ const VerificationRequests = () => {
                 )
             )
         }
-    ], [statusFilter]);
+    ], [filters.status]);
     
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Verification Requests</h1>
-                <div className="flex gap-2 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg">
-                    {Object.values(VERIFICATION_STATUS).map(status => (
-                        <Button
-                            key={status}
-                            variant={statusFilter === status ? 'primary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setStatusFilter(status)}
-                        >
-                            {status}
-                        </Button>
-                    ))}
+                <div className="flex items-center gap-4">
+                    <Input
+                        name="search"
+                        placeholder="Search by name, email, ID..."
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                        className="w-full md:w-64"
+                    />
+                    <div className="flex gap-2 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg">
+                        {Object.values(VERIFICATION_STATUS).map(status => (
+                            <Button
+                                key={status}
+                                variant={filters.status === status ? 'primary' : 'ghost'}
+                                size="sm"
+                                onClick={() => handleFilterChange('status', status)}
+                            >
+                                {status}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -105,11 +126,10 @@ const VerificationRequests = () => {
                 <Table
                     columns={columns}
                     data={requests || []}
-                    emptyMessage="No verification requests found for this status."
+                    emptyMessage="No verification requests found."
                 />
             )}
 
-            {/* Action Modals */}
             {action?.type === 'approve' && (
                 <Modal isOpen={true} onClose={() => setAction(null)} title="Approve User">
                     <p>Are you sure you want to approve the user <span className="font-semibold">{action.request.userName}</span> as a <span className="font-semibold">{action.request.requestType}</span>?</p>
@@ -126,7 +146,7 @@ const VerificationRequests = () => {
                 <RejectModal 
                     isOpen={true} 
                     onClose={() => setAction(null)} 
-                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.requestId, reason, adminId })}
+                    onSubmit={(reason) => rejectMutation.mutate({ requestId: action.request.requestId, reason })}
                     isLoading={rejectMutation.isLoading}
                     user={{ name: action.request.userName }}
                 />
@@ -153,7 +173,7 @@ const RejectModal = ({ isOpen, onClose, onSubmit, isLoading, user }) => {
                 <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full input-base"
+                    className="w-full p-2 border rounded-md bg-gray-50 dark:bg-dark-700 border-gray-300 dark:border-dark-600"
                     rows="4"
                     placeholder="e.g., Identification number does not match records."
                 />
@@ -167,6 +187,5 @@ const RejectModal = ({ isOpen, onClose, onSubmit, isLoading, user }) => {
         </Modal>
     );
 }
-
 
 export default VerificationRequests;

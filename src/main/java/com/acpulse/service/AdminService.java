@@ -32,6 +32,9 @@ public class AdminService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private PasswordResetRequestRepository passwordResetRequestRepository;
+
     public Map<String, Object> getStats() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -47,12 +50,18 @@ public class AdminService {
         return stats;
     }
 
-    public List<Map<String, Object>> getVerificationRequests(String status) {
+    public List<Map<String, Object>> getVerificationRequests(String status, String search) {
         VerificationRequest.Status requestStatus = status != null ?
                 VerificationRequest.Status.valueOf(status.toUpperCase()) :
                 VerificationRequest.Status.PENDING;
 
-        List<VerificationRequest> requests = verificationRequestRepository.findByStatus(requestStatus);
+        List<VerificationRequest> requests;
+        if (search != null && !search.trim().isEmpty()) {
+            requests = verificationRequestRepository.searchByStatusAndQuery(requestStatus, search);
+        } else {
+            requests = verificationRequestRepository.findByStatus(requestStatus);
+        }
+        
         List<Map<String, Object>> responses = new ArrayList<>();
 
         for (VerificationRequest request : requests) {
@@ -233,5 +242,48 @@ public class AdminService {
         response.put("createdAt", user.getCreatedAt());
         response.put("updatedAt", user.getUpdatedAt());
         return response;
+    }
+
+    public List<Map<String, Object>> getPasswordResetRequests() {
+        List<PasswordResetRequest> requests = passwordResetRequestRepository.findByStatus(PasswordResetRequest.RequestStatus.PENDING);
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (PasswordResetRequest request : requests) {
+            Map<String, Object> reqMap = new HashMap<>();
+            reqMap.put("id", request.getId());
+            reqMap.put("createdAt", request.getCreatedAt());
+            
+            User user = request.getUser();
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("name", user.getName());
+            userMap.put("email", user.getEmail());
+            reqMap.put("user", userMap);
+            
+            response.add(reqMap);
+        }
+        return response;
+    }
+
+    @Transactional
+    public void approvePasswordReset(Integer requestId, Integer adminId) {
+        PasswordResetRequest request = passwordResetRequestRepository.findById(requestId)
+                .orElseThrow(() -> new NotFoundException("Password reset request not found"));
+
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new NotFoundException("Admin user not found"));
+
+        if (request.getStatus() != PasswordResetRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Request has already been actioned.");
+        }
+
+        String token = UUID.randomUUID().toString();
+        request.setToken(token);
+        request.setStatus(PasswordResetRequest.RequestStatus.APPROVED);
+        request.setExpiryDate(LocalDateTime.now().plusHours(1)); // Token valid for 1 hour
+        request.setReviewedAt(LocalDateTime.now());
+        request.setReviewedBy(admin);
+        passwordResetRequestRepository.save(request);
+
+        emailService.sendPasswordResetEmail(request.getUser(), token);
     }
 }

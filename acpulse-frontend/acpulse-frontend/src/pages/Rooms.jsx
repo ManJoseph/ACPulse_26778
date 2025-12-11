@@ -20,7 +20,7 @@ const Rooms = () => {
   const handlePageChange = (newPage) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
-      page: newPage,
+      page: newPage - 1, // Adjust to 0-based index for backend
     }));
   };
 
@@ -48,17 +48,17 @@ const Rooms = () => {
 
       {!isLoading && error && (
         <EmptyState
-          icon={<DoorOpen className="w-12 h-12" />}
+          icon={DoorOpen}
           title="An Error Occurred"
-          message={`Failed to fetch rooms: ${error.message}`}
+          description={`Failed to fetch rooms: ${error.message}`}
         />
       )}
 
       {!isLoading && !error && rooms.length === 0 && (
         <EmptyState
-          icon={<DoorOpen className="w-12 h-12" />}
-          title="No Rooms Found"
-          message="Try adjusting your search filters."
+          icon={DoorOpen}
+          title={filters.searchTerm ? "No Matching Rooms Found" : "No Rooms Available"}
+          description={filters.searchTerm ? `No rooms match your search for "${filters.searchTerm}". Try adjusting your filters.` : "There are no rooms currently available in the system."}
         />
       )}
 
@@ -71,7 +71,7 @@ const Rooms = () => {
           </div>
           {page && (
             <Pagination
-              currentPage={page?.number}
+              currentPage={page.number + 1} // Display 1-based page number
               totalPages={page?.totalPages}
               onPageChange={handlePageChange}
             />

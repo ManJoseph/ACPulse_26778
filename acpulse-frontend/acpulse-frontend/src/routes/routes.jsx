@@ -22,6 +22,8 @@ import ComponentTest from '../pages/ComponentTest'; // For testing
 // Role-specific pages
 import VerificationRequests from '../components/admin/VerificationRequests';
 import UserManagement from '../components/admin/UserManagement';
+import PasswordResetRequests from '../components/admin/PasswordResetRequests';
+import TwoFactorAuth from '../pages/TwoFactorAuth';
 
 export const AppRouter = () => {
   const routes = useRoutes([
@@ -34,6 +36,7 @@ export const AppRouter = () => {
         { path: '/signup', element: <Signup /> },
         { path: '/forgot-password', element: <ForgotPassword /> },
         { path: '/reset-password', element: <ResetPassword /> },
+        { path: '/verify-otp', element: <TwoFactorAuth /> },
         // Redirect root to login for unauthenticated users
         { path: '/', element: <Navigate to="/login" replace /> },
       ],
@@ -58,6 +61,7 @@ export const AppRouter = () => {
               children: [
                 { path: 'verifications', element: <VerificationRequests /> },
                 { path: 'users', element: <UserManagement /> },
+                { path: 'password-resets', element: <PasswordResetRequests /> },
               ],
             },
             // Redirect authenticated users from the root path to their dashboard

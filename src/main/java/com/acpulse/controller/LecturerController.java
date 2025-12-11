@@ -1,17 +1,20 @@
 package com.acpulse.controller;
 
-import com.acpulse.dto.request.ScheduleRequest; // Added import
+import com.acpulse.dto.request.ScheduleRequest;
 import com.acpulse.dto.request.UpdateStatusRequest;
 import com.acpulse.service.LecturerService;
-import com.acpulse.dto.response.LecturerResponse; // Corrected import
+import com.acpulse.dto.response.LecturerResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // Added import
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
-import com.acpulse.model.LectureSchedule; // Added import for LectureSchedule
+import com.acpulse.model.LectureSchedule;
 
 @RestController
 @RequestMapping("/api/lecturers")
@@ -22,12 +25,13 @@ public class LecturerController {
 
     // Get all lecturers with optional filters and pagination
     @GetMapping
-    public ResponseEntity<List<LecturerResponse>> getAllLecturers(
+    public ResponseEntity<Page<LecturerResponse>> getAllLecturers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        List<LecturerResponse> response = lecturerService.getLecturers(search, status, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<LecturerResponse> response = lecturerService.getLecturers(search, status, pageable);
         return ResponseEntity.ok(response);
     }
 

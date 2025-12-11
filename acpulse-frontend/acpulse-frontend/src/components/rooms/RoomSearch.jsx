@@ -7,9 +7,10 @@ import { ROOM_STATUS } from '../../utils/constants';
 const RoomSearch = ({ filters, setFilters }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prevFilters) => ({
-      ...prevFilters,
+    setFilters(prev => ({
+      ...prev,
       [name]: value,
+      page: 0 // Reset to first page when search or status filters change
     }));
   };
 

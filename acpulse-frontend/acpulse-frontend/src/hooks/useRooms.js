@@ -1,27 +1,25 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import roomService from '../services/roomService';
-import useDebounce from './useDebounce';
+import useDebounce from './useDebounce'; // Re-enabled
 
-const useRooms = (initialFilters = {}) => {
-  const [filters, setFilters] = useState(initialFilters);
-  const debouncedFilters = useDebounce(filters, 500);
+const useRooms = (filters = {}) => {
+  const debouncedFilters = useDebounce(filters, 500); // Re-enabled
+  // console.log('useRooms - debouncedFilters:', debouncedFilters); // Removed debug log
 
   const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['rooms', debouncedFilters],
+    queryKey: ['rooms', { ...debouncedFilters }], // Use debounced filters
     queryFn: () => roomService.getRooms(debouncedFilters),
-    keepPreviousData: true,
+    keepPreviousData: true, // Re-enabled
   });
 
   return {
-    rooms: data || [],
-    page: null, // backend returns list, not paginated
+    rooms: data?.content || [],
+    page: data || null,
     isLoading,
     isFetching,
     error,
-    filters,
-    setFilters,
   };
 };
 
 export default useRooms;
+

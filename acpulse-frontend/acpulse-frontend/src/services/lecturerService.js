@@ -11,19 +11,18 @@ const lecturerService = {
    * @returns {Promise<object>} Paged list of lecturers.
    */
   getLecturers: async (filters = {}) => {
-    const { searchTerm, status, page, size } = filters;
+    const { searchTerm = '', status = '', page = 0, size = 9 } = filters;
+    
     const params = new URLSearchParams();
     if (searchTerm) params.append('search', searchTerm);
     if (status) params.append('status', status);
-    if (page !== undefined) params.append('page', page);
-    if (size) params.append('size', size);
+    params.append('page', page); // Ensure page is sent
+    params.append('size', size); // Ensure size is sent
 
     const apiUrl = `/lecturers?${params.toString()}`;
-    console.log('LecturerService: Fetching lecturers from:', apiUrl);
 
     try {
       const response = await api.get(apiUrl);
-      console.log('LecturerService: API response received:', response.data);
       return response.data;
     } catch (error) {
       console.error('LecturerService: Error fetching lecturers:', error);

@@ -4,50 +4,62 @@ import { persist } from 'zustand/middleware';
 export const useAuthStore = create(
   persist(
     (set) => ({
-      // The initial state should be empty.
-      // `persist` middleware will rehydrate it from localStorage on load.
       user: null,
       token: null,
       isAuthenticated: false,
+      isOtpPending: false, // To track if the UI should show the OTP screen
+      otpEmail: '', // To store the email while OTP is being verified
 
       // --- ACTIONS ---
 
       /**
-       * Sets user and token after successful login.
-       * The `authResponse` is the data object received from the backend API.
-       * @param {object} authResponse - The response from the /api/auth/login endpoint.
+       * Sets the state to indicate that OTP verification is required.
+       * @param {string} email - The email to which the OTP was sent.
        */
-      login: (authResponse) => {
+      loginOtpPending: (email) => {
+        set({
+          isOtpPending: true,
+          otpEmail: email,
+          isAuthenticated: false, // Not fully authenticated yet
+        });
+      },
+
+      /**
+       * Sets user and token after successful login (or OTP verification).
+       * @param {object} authResponse - The final auth response from the backend.
+       */
+      loginSuccess: (authResponse) => {
         const { token, ...userData } = authResponse;
-        // Store token in both state and localStorage for redundancy
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         set({
           user: userData,
           token: token,
           isAuthenticated: true,
+          isOtpPending: false, // Clear OTP pending state
+          otpEmail: '',
         });
       },
 
-      // Clear user and token on logout
+      // Clear all auth state on logout
       logout: () => {
-        // Clear localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        // Just update the state. The `persist` middleware will clear the storage.
         set({
           user: null,
           token: null,
           isAuthenticated: false,
+          isOtpPending: false,
+          otpEmail: '',
         });
       },
 
       // Update user information (e.g., after profile update)
       setUser: (userData) => {
-        localStorage.setItem('user', JSON.stringify(userData));
-        set((state) => ({
-          user: { ...state.user, ...userData },
-        }));
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        const updatedUser = { ...currentUser, ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        set({ user: updatedUser });
       },
     }),
     {

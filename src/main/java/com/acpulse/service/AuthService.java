@@ -2,6 +2,7 @@ package com.acpulse.service;
 
 import com.acpulse.dto.request.LoginRequest;
 import com.acpulse.dto.request.RegisterRequest;
+import com.acpulse.dto.request.VerifyOtpRequest;
 import com.acpulse.dto.response.AuthResponse;
 import com.acpulse.exception.BadRequestException;
 import com.acpulse.model.*;
@@ -16,8 +17,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Service
 public class AuthService {
@@ -43,6 +46,12 @@ public class AuthService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private PasswordResetRequestRepository passwordResetRequestRepository;
+
     @Transactional
     public Map<String, Object> register(RegisterRequest request) {
 
@@ -55,12 +64,6 @@ public class AuthService {
         if (userRepository.existsByIdentificationNumber(request.getIdentificationNumber())) {
             throw new BadRequestException("Identification number already registered");
         }
-
-        // Log the received roleType
-        System.out.println("Received roleType: " + request.getRoleType());
-
-        // Log all roles from the database
-        System.out.println("All roles in DB: " + roleRepository.findAll().stream().map(Role::getRoleName).toList());
 
         // Get role
         Role role = roleRepository.findByRoleName(request.getRoleType().toUpperCase())
@@ -106,40 +109,112 @@ public class AuthService {
         return response;
     }
 
-    public AuthResponse login(LoginRequest request) {
+    @Transactional
+    public Map<String, Object> login(LoginRequest request) {
         try {
-            // Authenticate user
+            // Authenticate user's credentials
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
-                            request.getPassword()
-                    )
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
 
             // Get user from repository
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-            // Check if approved
+            // Check if user account is approved
             if (user.getStatus() != User.UserStatus.APPROVED) {
                 throw new BadRequestException("Account is " + user.getStatus().name().toLowerCase());
             }
 
-            // Generate JWT token with the clean role name. The security filter will handle authority creation.
-            String cleanRoleName = user.getRole().getRoleName();
-            String token = jwtService.generateToken(user.getId(), user.getEmail(), cleanRoleName);
+            // Generate and save OTP
+            String otp = generateOtp();
+            user.setOtpCode(otp);
+            user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
+            userRepository.save(user);
 
-            // Return user info with the clean role name
-            return new AuthResponse(
-                    token,
-                    cleanRoleName,
-                    user.getId(),
-                    user.getName(),
-                    user.getEmail(),
-                    user.getStatus().name()
-            );
+            // Send OTP to user's email
+            emailService.sendOtpEmail(user.getEmail(), otp);
+
+            // Return pending status
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "PENDING_OTP");
+            response.put("message", "OTP sent to email");
+            return response;
+
         } catch (BadCredentialsException e) {
             throw new BadRequestException("Invalid credentials");
         }
     }
+
+    @Transactional
+    public AuthResponse verifyOtp(VerifyOtpRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(request.getOtp())) {
+            throw new BadRequestException("Invalid OTP");
+        }
+
+        if (LocalDateTime.now().isAfter(user.getOtpExpiry())) {
+            throw new BadRequestException("OTP has expired");
+        }
+
+        // Clear OTP
+        user.setOtpCode(null);
+        user.setOtpExpiry(null);
+        userRepository.save(user);
+
+        // Generate JWT token
+        String cleanRoleName = user.getRole().getRoleName();
+        String token = jwtService.generateToken(user.getId(), user.getEmail(), cleanRoleName);
+
+        // Return AuthResponse
+        return new AuthResponse(
+                token,
+                cleanRoleName,
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getStatus().name()
+        );
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        PasswordResetRequest resetRequest = new PasswordResetRequest();
+        resetRequest.setUser(user);
+        resetRequest.setStatus(PasswordResetRequest.RequestStatus.PENDING);
+        
+        passwordResetRequestRepository.save(resetRequest);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetRequest request = passwordResetRequestRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token."));
+
+        if (request.getStatus() != PasswordResetRequest.RequestStatus.APPROVED) {
+            throw new BadRequestException("Password reset request not approved or already completed.");
+        }
+
+        if (LocalDateTime.now().isAfter(request.getExpiryDate())) {
+            throw new BadRequestException("Password reset token has expired.");
+        }
+
+        User user = request.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        request.setStatus(PasswordResetRequest.RequestStatus.COMPLETED);
+        passwordResetRequestRepository.save(request);
+    }
+
+    private String generateOtp() {
+        Random random = new Random();
+        return String.format("%06d", random.nextInt(999999));
+    }
 }
+

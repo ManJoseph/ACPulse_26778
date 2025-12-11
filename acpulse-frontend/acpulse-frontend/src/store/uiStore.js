@@ -11,6 +11,7 @@ export const useUIStore = create(
       // --- STATE ---
       isSidebarCollapsed: false,
       theme: prefersDarkMode ? 'dark' : 'light', // Default to system preference
+      isGlobalSearchOpen: false, // For the global search modal
 
       // --- ACTIONS ---
 
@@ -28,11 +29,16 @@ export const useUIStore = create(
 
       // Set a specific theme
       setTheme: (theme) => set({ theme }),
+
+      // Global Search Modal Actions
+      openGlobalSearch: () => set({ isGlobalSearchOpen: true }),
+      closeGlobalSearch: () => set({ isGlobalSearchOpen: false }),
+      toggleGlobalSearch: () => set((state) => ({ isGlobalSearchOpen: !state.isGlobalSearchOpen })),
     }),
     {
       name: 'ui-storage', // name of the item in the storage (must be unique)
       // Only persist the 'theme' property
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({ theme: state.theme, isSidebarCollapsed: state.isSidebarCollapsed }),
     }
   )
 );
