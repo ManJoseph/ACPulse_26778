@@ -58,6 +58,11 @@ public class Room {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // Many-to-One: Room → User (office owner)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "office_owner_id")
+    private User officeOwner;
+
     public enum RoomType {
         LECTURE_HALL, LAB, OFFICE, MEETING_ROOM
     }
@@ -112,4 +117,7 @@ public class Room {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public User getOfficeOwner() { return officeOwner; }
+    public void setOfficeOwner(User officeOwner) { this.officeOwner = officeOwner; }
 }

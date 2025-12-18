@@ -34,6 +34,12 @@ public class RoomService {
         return buildRoomResponse(room);
     }
 
+    public RoomResponse getRoomById(Integer id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Room not found with id: " + id));
+        return buildRoomResponse(room);
+    }
+
     public Page<RoomResponse> getAllRooms(String search, String status, Pageable pageable) {
         Page<Room> roomPage;
         if (search != null && !search.trim().isEmpty()) {
@@ -177,6 +183,11 @@ public class RoomService {
         response.setRoomType(room.getRoomType().name());
         response.setStatus(room.getStatus().name());
 
+        if (room.getOfficeOwner() != null) {
+            response.setOfficeOwnerId(room.getOfficeOwner().getId());
+            response.setOfficeOwnerName(room.getOfficeOwner().getName());
+        }
+
         // Add lecturer info if occupied
         if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() != null) {
             User lecturer = room.getCurrentLecturer();
@@ -191,5 +202,77 @@ public class RoomService {
         }
 
         return response;
+    }
+
+    // --- Admin Methods ---
+
+    @Transactional
+    public RoomResponse createRoom(com.acpulse.dto.request.RoomRequest request) {
+        if (roomRepository.findByRoomNumber(request.getRoomNumber()).isPresent()) {
+            throw new BadRequestException("Room with number " + request.getRoomNumber() + " already exists.");
+        }
+
+        Room room = new Room();
+        updateRoomFromRequest(room, request);
+        room.setStatus(Room.RoomStatus.AVAILABLE); // Default status
+        
+        Room savedRoom = roomRepository.save(room);
+        return buildRoomResponse(savedRoom);
+    }
+
+    @Transactional
+    public RoomResponse updateRoom(Integer id, com.acpulse.dto.request.RoomRequest request) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Room not found with id: " + id));
+
+        // Check uniqueness of room number if changed
+        if (!room.getRoomNumber().equals(request.getRoomNumber()) && 
+            roomRepository.findByRoomNumber(request.getRoomNumber()).isPresent()) {
+             throw new BadRequestException("Room with number " + request.getRoomNumber() + " already exists.");
+        }
+
+        updateRoomFromRequest(room, request);
+        Room savedRoom = roomRepository.save(room);
+        return buildRoomResponse(savedRoom);
+    }
+
+    @Transactional
+    public void deleteRoom(Integer id) {
+        if (!roomRepository.existsById(id)) {
+            throw new NotFoundException("Room not found with id: " + id);
+        }
+        // Potential check: Is room occupied? If so, maybe prevent delete or force release.
+        // For now, let's stick to basics. JPA might complain about FK constraints if occupied/referenced.
+        // Assuming cascade or simple delete for now.
+        roomRepository.deleteById(id);
+    }
+
+    private void updateRoomFromRequest(Room room, com.acpulse.dto.request.RoomRequest request) {
+        room.setRoomNumber(request.getRoomNumber());
+        room.setRoomName(request.getRoomName());
+        room.setBuilding(request.getBuilding());
+        room.setFloor(request.getFloor());
+        room.setCapacity(request.getCapacity());
+        try {
+            room.setRoomType(Room.RoomType.valueOf(request.getRoomType().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid room type: " + request.getRoomType());
+        }
+
+        // Handle Office Owner assignment
+        if (request.getOfficeOwnerId() != null) {
+            User owner = userRepository.findById(request.getOfficeOwnerId())
+                    .orElseThrow(() -> new NotFoundException("Office owner not found with id: " + request.getOfficeOwnerId()));
+            room.setOfficeOwner(owner);
+        } else {
+             // If null is explicitly sent (or conceptually needed), we unassign.
+             // Usually request param absence means "don't change" or "null". 
+             // Here simpler to assume if it's null in request, clear it? Or only if intended.
+             // Given it's a DTO, null might mean "no change" or "remove".
+             // For simplicity: if request has logic to clear, we'd need a flag or explicit null handling.
+             // Let's assume if it is null, we set it to null (clear assignment), AS LONG AS IT IS AN OFFICE.
+             // Actually, safer: set to null unless we want partial updates. But this method overwrites fields.
+             room.setOfficeOwner(null);
+        }
     }
 }

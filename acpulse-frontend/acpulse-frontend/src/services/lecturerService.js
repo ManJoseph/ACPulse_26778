@@ -36,14 +36,14 @@ const lecturerService = {
   },
 
   // Get lecturer status
-  getStatus: async () => {
-    const response = await api.get('/lecturers/status');
+  getStatus: async (lecturerId) => {
+    const response = await api.get(`/lecturers/status?lecturerId=${lecturerId}`);
     return response.data;
   },
 
   // Update status
-  updateStatus: async (data) => {
-    const response = await api.put('/lecturers/status', data);
+  updateStatus: async (lecturerId, data) => {
+    const response = await api.put(`/lecturers/status?lecturerId=${lecturerId}`, data);
     return response.data;
   },
 

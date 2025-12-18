@@ -45,7 +45,7 @@ const LecturerCard = ({ lecturer, onClick }) => {
           <div className="flex-1">
             <div className="flex justify-between items-start">
               <h3 className="text-lg font-bold">{lecturer.name}</h3>
-              {getStatusBadge(lecturer.status?.status)}
+              {getStatusBadge(lecturer.status)}
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">{lecturer.department}</p>
           </div>

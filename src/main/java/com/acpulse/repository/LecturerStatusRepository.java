@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface LecturerStatusRepository extends JpaRepository<LecturerStatus, Integer> {
     Optional<LecturerStatus> findByLecturer_IdAndIsActive(Integer lecturerId, Boolean isActive);
+    List<LecturerStatus> findByStatusAndIsActive(LecturerStatus.Status status, Boolean isActive);
     List<LecturerStatus> findByLecturer_Id(Integer lecturerId);
 }

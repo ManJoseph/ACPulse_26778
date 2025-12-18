@@ -12,8 +12,9 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class ScheduleRequest {
     private Integer id; // For updates
+    private String courseName; // New field
     private DayOfWeek dayOfWeek;
     private LocalTime startTime;
     private LocalTime endTime;
-    // lecturerId might be passed in PathVariable, but good to have here for consistency if needed
+    private Integer roomId; // Optional room assignment
 }

@@ -15,6 +15,8 @@ public class RoomResponse {
     private LocalDateTime occupiedSince;
     private LocalDateTime occupiedUntil;
     private String occupationMessage;
+    private Integer officeOwnerId;
+    private String officeOwnerName;
 
     // Getters and Setters
     public Integer getId() { return id; }
@@ -60,4 +62,10 @@ public class RoomResponse {
     public void setOccupationMessage(String occupationMessage) {
         this.occupationMessage = occupationMessage;
     }
+
+    public Integer getOfficeOwnerId() { return officeOwnerId; }
+    public void setOfficeOwnerId(Integer officeOwnerId) { this.officeOwnerId = officeOwnerId; }
+
+    public String getOfficeOwnerName() { return officeOwnerName; }
+    public void setOfficeOwnerName(String officeOwnerName) { this.officeOwnerName = officeOwnerName; }
 }

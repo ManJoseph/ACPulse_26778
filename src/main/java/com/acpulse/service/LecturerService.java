@@ -2,6 +2,7 @@ package com.acpulse.service;
 
 import com.acpulse.dto.request.ScheduleRequest;
 import com.acpulse.dto.request.UpdateStatusRequest;
+import com.acpulse.dto.response.LectureScheduleResponse; // Import the new DTO
 import com.acpulse.dto.response.LecturerResponse; // Import the new DTO
 import com.acpulse.exception.NotFoundException;
 import com.acpulse.model.*;
@@ -32,16 +33,34 @@ public class LecturerService {
 
     public Page<LecturerResponse> getLecturers(String search, String status, Pageable pageable) {
         Page<User> lecturerPage;
-        if (search != null && !search.trim().isEmpty()) {
-            if (status != null && !status.trim().isEmpty()) {
-                // Assuming status maps to something usable in the User entity or a join
-                // For now, let's keep it simple and filter by name for LECTURER role
-                lecturerPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, "LECTURER", pageable);
-            } else {
-                lecturerPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, "LECTURER", pageable);
+        if (status != null && !status.trim().isEmpty()) {
+            // Find lecturers with this active status
+            try {
+                LecturerStatus.Status statusEnum = LecturerStatus.Status.valueOf(status.toUpperCase());
+                List<Integer> lecturerIds = lecturerStatusRepository.findByStatusAndIsActive(statusEnum, true)
+                        .stream()
+                        .map(ls -> ls.getLecturer().getId())
+                        .collect(Collectors.toList());
+                
+                if (lecturerIds.isEmpty()) {
+                    return Page.empty(pageable); // No lecturers with this status
+                }
+
+                if (search != null && !search.trim().isEmpty()) {
+                     lecturerPage = userRepository.findByIdInAndNameContainingIgnoreCase(lecturerIds, search, pageable);
+                } else {
+                     lecturerPage = userRepository.findByIdIn(lecturerIds, pageable);
+                }
+            } catch (IllegalArgumentException e) {
+                // Invalid status string, return empty or ignore? Let's return empty to be safe
+                return Page.empty(pageable);
             }
         } else {
-            lecturerPage = userRepository.findByRole_RoleNameIgnoreCase("LECTURER", pageable);
+            if (search != null && !search.trim().isEmpty()) {
+                lecturerPage = userRepository.findByNameContainingIgnoreCaseAndRole_RoleNameIgnoreCase(search, "LECTURER", pageable);
+            } else {
+                lecturerPage = userRepository.findByRole_RoleNameIgnoreCase("LECTURER", pageable);
+            }
         }
         return lecturerPage.map(this::toLecturerResponse);
     }
@@ -62,6 +81,12 @@ public class LecturerService {
                     }
                 });
         return response;
+    }
+
+    public LecturerResponse getLecturerById(Integer id) {
+        User lecturer = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + id));
+        return toLecturerResponse(lecturer);
     }
 
 
@@ -92,8 +117,12 @@ public class LecturerService {
             LecturerStatus activeStatus = activeStatusOpt.get();
             statusMap.put("status", activeStatus.getStatus());
             statusMap.put("updatedAt", activeStatus.getStatusStartTime());
+            statusMap.put("occupiedUntil", activeStatus.getExpectedEndTime());
             if (activeStatus.getCurrentRoom() != null) {
                 statusMap.put("office", activeStatus.getCurrentRoom().getRoomName());
+                statusMap.put("roomNumber", activeStatus.getCurrentRoom().getRoomNumber());
+                statusMap.put("building", activeStatus.getCurrentRoom().getBuilding());
+                statusMap.put("floor", activeStatus.getCurrentRoom().getFloor());
             }
         } else {
             statusMap.put("status", "UNKNOWN");
@@ -107,8 +136,17 @@ public class LecturerService {
         User lecturer = userRepository.findById(lecturerId)
                 .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
 
-        // Deactivate current status
+        // Deactivate current status and release room if applicable
         lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true).ifPresent(oldStatus -> {
+            // Release the room if one was occupied
+            if (oldStatus.getCurrentRoom() != null) {
+                Room room = oldStatus.getCurrentRoom();
+                room.setOccupiedUntil(null);
+                room.setCurrentLecturer(null);
+                room.setStatus(Room.RoomStatus.AVAILABLE);
+                room.setStatusUpdatedAt(LocalDateTime.now());
+                roomRepository.save(room); // Explicitly save room changes
+            }
             oldStatus.setIsActive(false);
             lecturerStatusRepository.save(oldStatus);
         });
@@ -129,17 +167,38 @@ public class LecturerService {
     }
 
     // New method: Get lecturer's schedule
-    public List<LectureSchedule> getLecturerSchedule(Integer lecturerId) {
+    public List<LectureScheduleResponse> getLecturerSchedule(Integer lecturerId) {
         // Validate if lecturer exists
         userRepository.findById(lecturerId)
                 .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
         
-        return lectureScheduleRepository.findByLecturer_IdOrderByDayOfWeekAscStartTimeAsc(lecturerId);
+        List<LectureSchedule> schedules = lectureScheduleRepository.findByLecturer_IdOrderByDayOfWeekAscStartTimeAsc(lecturerId);
+        
+        // Handle null or empty list
+        if (schedules == null || schedules.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        return schedules.stream().map(schedule -> {
+            LectureScheduleResponse dto = new LectureScheduleResponse();
+            dto.setId(schedule.getId());
+            dto.setCourseName(schedule.getCourseName() != null ? schedule.getCourseName() : "Untitled Class"); // Handle null
+            dto.setDayOfWeek(schedule.getDayOfWeek());
+            dto.setStartTime(schedule.getStartTime());
+            dto.setEndTime(schedule.getEndTime());
+            dto.setLecturerId(schedule.getLecturer().getId());
+            dto.setLecturerName(schedule.getLecturer().getName());
+            if (schedule.getRoom() != null) {
+                dto.setRoomId(schedule.getRoom().getId());
+                dto.setRoomName(schedule.getRoom().getRoomName());
+            }
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // New method: Set/Update lecturer's schedule
     @Transactional
-    public LectureSchedule setLecturerSchedule(Integer lecturerId, ScheduleRequest scheduleRequest) {
+    public LectureScheduleResponse setLecturerSchedule(Integer lecturerId, ScheduleRequest scheduleRequest) {
         User lecturer = userRepository.findById(lecturerId)
                 .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
         
@@ -151,20 +210,51 @@ public class LecturerService {
             if (!schedule.getLecturer().getId().equals(lecturerId)) {
                 throw new SecurityException("Lecturer ID mismatch for schedule update.");
             }
+            schedule.setCourseName(scheduleRequest.getCourseName());
             schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
             schedule.setStartTime(scheduleRequest.getStartTime());
             schedule.setEndTime(scheduleRequest.getEndTime());
+            
+            // Handle Room Assignment
+            if (scheduleRequest.getRoomId() != null) {
+                Room room = roomRepository.findById(scheduleRequest.getRoomId())
+                        .orElseThrow(() -> new NotFoundException("Room not found with id: " + scheduleRequest.getRoomId()));
+                schedule.setRoom(room);
+            } else {
+                schedule.setRoom(null);
+            }
+
             schedule.setUpdatedAt(LocalDateTime.now());
         } else {
             // Create new schedule entry
             schedule = new LectureSchedule();
             schedule.setLecturer(lecturer);
+            schedule.setCourseName(scheduleRequest.getCourseName());
             schedule.setDayOfWeek(scheduleRequest.getDayOfWeek());
             schedule.setStartTime(scheduleRequest.getStartTime());
             schedule.setEndTime(scheduleRequest.getEndTime());
+            
+            // Handle Room Assignment
+            if (scheduleRequest.getRoomId() != null) {
+                Room room = roomRepository.findById(scheduleRequest.getRoomId())
+                        .orElseThrow(() -> new NotFoundException("Room not found with id: " + scheduleRequest.getRoomId()));
+                schedule.setRoom(room);
+            }
             // createdAt is set by default in model
         }
-        return lectureScheduleRepository.save(schedule);
+        
+        LectureSchedule saved = lectureScheduleRepository.save(schedule);
+        
+        // Return DTO
+        LectureScheduleResponse dto = new LectureScheduleResponse();
+        dto.setId(saved.getId());
+        dto.setCourseName(saved.getCourseName());
+        dto.setDayOfWeek(saved.getDayOfWeek());
+        dto.setStartTime(saved.getStartTime());
+        dto.setEndTime(saved.getEndTime());
+        dto.setLecturerId(saved.getLecturer().getId());
+        dto.setLecturerName(saved.getLecturer().getName());
+        return dto;
     }
 
     // New method: Delete a schedule entry

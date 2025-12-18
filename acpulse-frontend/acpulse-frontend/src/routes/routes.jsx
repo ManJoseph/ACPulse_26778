@@ -12,8 +12,10 @@ import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import Dashboard from '../pages/Dashboard';
 import Rooms from '../pages/Rooms';
+import RoomDetails from '../components/rooms/RoomDetails'; // Added import
 import Lecturers from '../pages/Lecturers';
-import LecturerSchedule from '../pages/LecturerSchedule'; // Added import
+import LecturerProfile from '../components/lecturers/LecturerProfile'; // Added import
+import LecturerSchedule from '../pages/LecturerSchedule';
 import Profile from '../pages/Profile';
 import Notifications from '../pages/Notifications';
 import NotFound from '../pages/NotFound';
@@ -52,8 +54,10 @@ export const AppRouter = () => {
           children: [
             { path: 'dashboard', element: <Dashboard /> },
             { path: 'rooms', element: <Rooms /> },
+            { path: 'rooms/:roomId', element: <RoomDetails /> }, // Added route
             { path: 'lecturers', element: <Lecturers /> },
-            { path: 'schedule', element: <LecturerSchedule /> }, // Added route
+            { path: 'lecturers/:lecturerId', element: <LecturerProfile /> }, // Added route
+            { path: 'schedule', element: <LecturerSchedule /> },
             { path: 'profile', element: <Profile /> },
             { path: 'notifications', element: <Notifications /> },
             {

@@ -28,6 +28,11 @@ public class RoomController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/rooms/{id}")
+    public ResponseEntity<RoomResponse> getRoomById(@PathVariable Integer id) {
+        return ResponseEntity.ok(roomService.getRoomById(id));
+    }
+
     //  Get all rooms with optional search and status filters
     @GetMapping("/rooms")
     public ResponseEntity<Page<RoomResponse>> getAllRooms(
@@ -66,5 +71,23 @@ public class RoomController {
             @PathVariable Integer roomId) {
         Map<String, String> response = roomService.releaseRoom(lecturerId, roomId);
         return ResponseEntity.ok(response);
+    }
+
+    // --- Admin Endpoints ---
+
+    @PostMapping("/rooms")
+    public ResponseEntity<RoomResponse> createRoom(@Valid @RequestBody com.acpulse.dto.request.RoomRequest request) { // Use full path or import
+        return ResponseEntity.ok(roomService.createRoom(request));
+    }
+
+    @PutMapping("/rooms/{id}")
+    public ResponseEntity<RoomResponse> updateRoom(@PathVariable Integer id, @Valid @RequestBody com.acpulse.dto.request.RoomRequest request) {
+         return ResponseEntity.ok(roomService.updateRoom(id, request));
+    }
+
+    @DeleteMapping("/rooms/{id}")
+    public ResponseEntity<Void> deleteRoom(@PathVariable Integer id) {
+        roomService.deleteRoom(id);
+        return ResponseEntity.noContent().build();
     }
 }

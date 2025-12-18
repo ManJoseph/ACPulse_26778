@@ -1,37 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { CalendarDays, Plus, Trash2, Save } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { CalendarDays, Plus, Trash2, Edit, MapPin, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
-import Input from '../components/common/Input';
-import Select from '../components/common/Select';
 import { useAuthStore } from '../store/authStore';
 import lecturerService from '../services/lecturerService';
-import { LECTURER_STATUS } from '../utils/constants'; // For possible schedule related statuses
+import ScheduleModal from '../components/lecturers/ScheduleModal';
 
 // Helper to format time for display/input
 const formatTime = (timeString) => {
   if (!timeString) return '';
-  // Assuming timeString is in "HH:mm" format or similar
-  // Adjust as per backend time format
-  return timeString;
+  // Assuming timeString is HH:mm:ss, return HH:mm
+  return timeString.substring(0, 5);
 };
 
-// Represents a single schedule entry (e.g., a time slot for a day)
-const ScheduleEntry = ({ day, time, onEdit, onDelete }) => (
-  <div className="flex justify-between items-center p-2 border-b last:border-b-0 dark:border-dark-700">
-    <span>{day}: {time}</span>
-    <div className="flex gap-2">
-      <Button variant="ghost" size="sm" onClick={onEdit}>
+// Represents a single schedule entry
+const ScheduleEntry = ({ entry, onEdit, onDelete }) => (
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b last:border-b-0 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
+    <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+            <span className="font-bold text-gray-800 dark:text-gray-200 w-24">{entry.dayOfWeek}</span>
+             <span className="text-gray-600 dark:text-gray-400 font-mono text-sm bg-gray-100 dark:bg-dark-900 px-2 py-0.5 rounded">
+                {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
+            </span>
+        </div>
+        <div className="flex items-center gap-4 ml-0 md:ml-24 mt-2 md:mt-0">
+             <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                <BookOpen className="w-4 h-4" />
+                <span className="font-medium">{entry.courseName || 'Untitled Class'}</span>
+            </div>
+            {entry.roomName && (
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-sm">
+                    <MapPin className="w-4 h-4" />
+                    <span>{entry.roomName}</span>
+                </div>
+            )}
+        </div>
+    </div>
+    
+    <div className="flex gap-2 mt-4 md:mt-0 ml-0 md:ml-4">
+      <Button variant="ghost" size="sm" onClick={() => onEdit(entry)}>
         <Edit className="w-4 h-4" />
       </Button>
-      <Button variant="danger" size="sm" onClick={onDelete}>
+      <Button variant="danger" size="sm" onClick={() => onDelete(entry.id)}>
         <Trash2 className="w-4 h-4" />
       </Button>
     </div>
@@ -41,42 +57,22 @@ const ScheduleEntry = ({ day, time, onEdit, onDelete }) => (
 const LecturerSchedule = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const lecturerId = user?.userId;
-  const { register, handleSubmit, reset, setValue } = useForm();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingScheduleId, setEditingScheduleId] = useState(null);
+  const lecturerId = user?.userId; // Ensure userId is correct property
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
 
   // Fetch lecturer's schedule
   const { data: schedule, isLoading, error } = useQuery({
     queryKey: ['lecturerSchedule', lecturerId],
-    queryFn: () => lecturerService.getLecturerSchedule(lecturerId), // Assuming this API exists
+    queryFn: () => lecturerService.getLecturerSchedule(lecturerId),
     enabled: !!lecturerId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Mutation for setting/updating schedule
-  const saveScheduleMutation = useMutation({
-    mutationFn: (newSchedule) => {
-      if (isEditing) {
-        return lecturerService.updateLecturerSchedule(editingScheduleId, newSchedule); // Assuming API for update
-      }
-      return lecturerService.setLecturerSchedule(lecturerId, newSchedule); // Assuming API for create
-    },
-    onSuccess: () => {
-      toast.success(`Schedule ${isEditing ? 'updated' : 'set'} successfully!`);
-      queryClient.invalidateQueries(['lecturerSchedule', lecturerId]);
-      reset(); // Clear form
-      setIsEditing(false);
-      setEditingScheduleId(null);
-    },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to save schedule.');
-    },
+    staleTime: 5 * 60 * 1000, 
   });
 
   // Mutation for deleting a schedule entry
   const deleteScheduleMutation = useMutation({
-    mutationFn: (scheduleId) => lecturerService.deleteLecturerScheduleEntry(scheduleId), // Assuming API for delete
+    mutationFn: (scheduleId) => lecturerService.deleteLecturerScheduleEntry(scheduleId),
     onSuccess: () => {
       toast.success('Schedule entry deleted successfully!');
       queryClient.invalidateQueries(['lecturerSchedule', lecturerId]);
@@ -86,32 +82,18 @@ const LecturerSchedule = () => {
     },
   });
 
-  // Pre-fill form for editing
   const handleEdit = (entry) => {
-    setValue('day', entry.day);
-    setValue('startTime', entry.startTime);
-    setValue('endTime', entry.endTime);
-    setIsEditing(true);
-    setEditingScheduleId(entry.id);
+    setSelectedSchedule(entry);
+    setIsModalOpen(true);
   };
 
-  const onSubmit = (data) => {
-    saveScheduleMutation.mutate(data);
-  };
-
-  if (isLoading) {
-    return <LoadingSpinner />;
+  const handleAddNew = () => {
+    setSelectedSchedule(null);
+    setIsModalOpen(true);
   }
 
-  if (error) {
-    return (
-      <EmptyState
-        icon={CalendarDays}
-        title="Error Loading Schedule"
-        message={error.message || "Could not fetch your schedule."}
-      />
-    );
-  }
+  if (isLoading) return <LoadingSpinner fullScreen />;
+  if (error) return <EmptyState icon={CalendarDays} title="Error Loading Schedule" message={error.message} />;
 
   return (
     <motion.div
@@ -121,73 +103,51 @@ const LecturerSchedule = () => {
       className="space-y-6"
     >
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
+        <div>
+            <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
+            <p className="text-gray-500 dark:text-gray-400">Manage your weekly classes and recurring bookings.</p>
+        </div>
+        <Button onClick={handleAddNew}>
+            <Plus className="w-4 h-4 mr-2" /> Add Class
+        </Button>
       </div>
 
       <Card>
-        <Card.Header>
-          <Card.Title>{isEditing ? 'Edit Schedule Entry' : 'Add New Schedule Entry'}</Card.Title>
-        </Card.Header>
-        <Card.Body>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Select label="Day" id="day" {...register('day', { required: 'Day is required' })}>
-              <option value="">Select Day</option>
-              {['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'].map(day => (
-                <option key={day} value={day}>{day}</option>
-              ))}
-            </Select>
-            <Input
-              label="Start Time"
-              id="startTime"
-              type="time"
-              {...register('startTime', { required: 'Start time is required' })}
-            />
-            <Input
-              label="End Time"
-              id="endTime"
-              type="time"
-              {...register('endTime', { required: 'End time is required' })}
-            />
-            <div className="flex justify-end gap-2">
-              {isEditing && (
-                <Button variant="outline" onClick={() => { reset(); setIsEditing(false); setEditingScheduleId(null); }}>
-                  Cancel Edit
-                </Button>
-              )}
-              <Button type="submit" loading={saveScheduleMutation.isLoading}>
-                <Save className="w-4 h-4 mr-2" /> {isEditing ? 'Update Entry' : 'Add Entry'}
-              </Button>
-            </div>
-          </form>
-        </Card.Body>
-      </Card>
-
-      <Card>
-        <Card.Header>
-          <Card.Title>Current Schedule</Card.Title>
-        </Card.Header>
-        <Card.Body>
+        <Card.Body className="p-0">
           {schedule?.length === 0 ? (
-            <EmptyState
-              icon={CalendarDays}
-              title="No Schedule Set"
-              message="Your schedule is currently empty. Add new entries above."
-            />
+            <div className="p-8">
+                <EmptyState
+                icon={CalendarDays}
+                title="No Classes Scheduled"
+                message="You haven't added any classes to your schedule yet."
+                action={<Button onClick={handleAddNew}>Add Your First Class</Button>}
+                />
+            </div>
           ) : (
-            <div>
+            <div className="divide-y divide-gray-100 dark:divide-dark-700">
               {schedule?.map((entry) => (
                 <ScheduleEntry
                   key={entry.id}
-                  day={entry.day}
-                  time={`${formatTime(entry.startTime)} - ${formatTime(entry.endTime)}`}
-                  onEdit={() => handleEdit(entry)}
-                  onDelete={() => deleteScheduleMutation.mutate(entry.id)}
+                  entry={entry}
+                  onEdit={handleEdit}
+                  onDelete={deleteScheduleMutation.mutate}
                 />
               ))}
             </div>
           )}
         </Card.Body>
       </Card>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <ScheduleModal 
+            isOpen={isModalOpen} 
+            onClose={() => setIsModalOpen(false)} 
+            scheduleItem={selectedSchedule}
+            lecturerId={lecturerId}
+        />
+      )}
+
     </motion.div>
   );
 };

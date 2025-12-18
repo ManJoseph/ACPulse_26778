@@ -63,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/rooms/**").permitAll()
                         .requestMatchers("/api/lecturers/search").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/lecturer/**").hasRole("LECTURER")
+                        .requestMatchers("/api/lecturer/**").authenticated() // Allow all authenticated users (Student/Lecturer) to access lecturer endpoints
                         .requestMatchers("/api/lecturers/**").authenticated() // Allow all authenticated users to view lecturers list
                         .requestMatchers("/api/staff/**").hasRole("STAFF")
                         .anyRequest().authenticated()

@@ -24,7 +24,9 @@ public class LectureSchedule {
     @JoinColumn(name = "semester_id")
     private Semester semester;
 
-    @Enumerated(EnumType.STRING)
+    @Column(name = "course_name") // Made nullable for backward compatibility
+    private String courseName;
+
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
 
@@ -52,6 +54,9 @@ public class LectureSchedule {
 
     public Semester getSemester() { return semester; }
     public void setSemester(Semester semester) { this.semester = semester; }
+
+    public String getCourseName() { return courseName; }
+    public void setCourseName(String courseName) { this.courseName = courseName; }
 
     public DayOfWeek getDayOfWeek() { return dayOfWeek; }
     public void setDayOfWeek(DayOfWeek dayOfWeek) { this.dayOfWeek = dayOfWeek; }

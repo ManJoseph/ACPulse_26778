@@ -2,7 +2,6 @@ import React from 'react';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileDetails from '../components/profile/ProfileDetails';
 import ChangePassword from '../components/profile/ChangePassword';
-import VerificationStatus from '../components/profile/VerificationStatus';
 
 const Profile = () => {
   return (
@@ -14,7 +13,6 @@ const Profile = () => {
         </div>
         <div className="space-y-6">
             <ChangePassword />
-            <VerificationStatus />
         </div>
       </div>
     </div>
