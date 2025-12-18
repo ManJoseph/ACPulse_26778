@@ -5,7 +5,7 @@ import Card from '../common/Card';
 import Badge from '../common/Badge';
 import { ROOM_STATUS } from '../../utils/constants';
 
-const RoomCard = ({ room }) => {
+const RoomCard = ({ room, onClick }) => {
   if (!room) return null; // Defensive rendering
 
   const navigate = useNavigate();
@@ -24,7 +24,11 @@ const RoomCard = ({ room }) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/rooms/${room.id}`);
+    if (onClick) {
+        onClick(room);
+    } else {
+        navigate(`/rooms/${room.id}`);
+    }
   };
 
   return (

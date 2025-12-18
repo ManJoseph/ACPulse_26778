@@ -6,7 +6,7 @@ import Badge from '../common/Badge';
 import Avatar from '../common/Avatar';
 import { LECTURER_STATUS } from '../../utils/constants';
 
-const LecturerCard = ({ lecturer }) => {
+const LecturerCard = ({ lecturer, onClick }) => {
   if (!lecturer) return null; // Defensive rendering
 
   const navigate = useNavigate();
@@ -27,7 +27,11 @@ const LecturerCard = ({ lecturer }) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/lecturers/${lecturer.id}`);
+    if (onClick) {
+        onClick(lecturer);
+    } else {
+        navigate(`/lecturers/${lecturer.id}`);
+    }
   };
 
   return (

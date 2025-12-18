@@ -18,5 +18,8 @@ public interface RoomRepository extends JpaRepository<Room, Integer> {
     Page<Room> findByRoomNameContainingIgnoreCase(String roomName, Pageable pageable);
     Page<Room> findByStatusAndRoomNameContainingIgnoreCase(Room.RoomStatus status, String roomName, Pageable pageable);
     Page<Room> findByStatus(Room.RoomStatus status, Pageable pageable);
+
+    List<Room> findByStatusAndOccupiedUntilBetween(Room.RoomStatus status, LocalDateTime start, LocalDateTime end); 
+
     Page<Room> findAll(Pageable pageable);
 }

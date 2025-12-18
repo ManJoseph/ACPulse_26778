@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, DoorOpen, Users, Building2, TrendingUp, CornerDownLeft } from 'lucide-react';
+import { Search, X, DoorOpen, Users, Building2, TrendingUp, CornerDownLeft, ArrowRight } from 'lucide-react';
 import { useDebounce } from '../../hooks';
 import { cn } from '../../utils/helpers';
 import { useUIStore } from '../../store';
-import { roomService, lecturerService } from '../../services';
+import { searchService, roomService, lecturerService } from '../../services'; // Assuming searchService is available/updated
 import { Badge, Avatar, LoadingSpinner, EmptyState } from './index';
+import RoomModal from '../rooms/RoomModal';
+import LecturerModal from '../lecturers/LecturerModal';
 
 const GlobalSearch = () => {
   const navigate = useNavigate();
@@ -16,6 +18,11 @@ const GlobalSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const [activeResult, setActiveResult] = useState(0);
+  
+  // Modal States
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedLecturer, setSelectedLecturer] = useState(null);
+
   const inputRef = useRef(null);
   const debouncedQuery = useDebounce(query, 300);
 
@@ -39,7 +46,7 @@ const GlobalSearch = () => {
 
   const addRecentSearch = (item) => {
     setRecentSearches(prev => {
-      const newRecents = [item, ...prev.filter(r => r.id !== item.id && r.type !== item.type)];
+      const newRecents = [item, ...prev.filter(r => r.id !== item.id)];
       const limitedRecents = newRecents.slice(0, 5);
       localStorage.setItem('recentSearches', JSON.stringify(limitedRecents));
       return limitedRecents;
@@ -56,17 +63,8 @@ const GlobalSearch = () => {
 
     setIsLoading(true);
     try {
-      const [rooms, lecturers] = await Promise.all([
-        roomService.getRooms({ search: searchQuery }),
-        lecturerService.getLecturers({ search: searchQuery })
-      ]);
-
-      const formattedResults = [
-        ...rooms.map(r => ({ ...r, type: 'Room', id: r.roomCode })),
-        ...lecturers.map(l => ({ ...l, type: 'Lecturer', id: l.userId }))
-      ];
-
-      setResults(formattedResults);
+      const data = await searchService.globalSearch(searchQuery);
+      setResults(data);
       setActiveResult(0);
     } catch (error) {
       console.error("Global search failed:", error);
@@ -80,19 +78,41 @@ const GlobalSearch = () => {
     performSearch(debouncedQuery);
   }, [debouncedQuery, performSearch]);
 
-  const handleNavigation = (item) => {
+  const handleNavigation = async (item) => {
     if (!item) return;
 
-    const pathMap = {
-      Room: `/rooms/${item.id}`,
-      Lecturer: `/lecturers/${item.id}`,
-    };
-
-    closeGlobalSearch();
-    setQuery('');
-    setResults([]);
     addRecentSearch(item);
-    navigate(pathMap[item.type]);
+    
+    // Switch on Type
+    if (item.type === 'Navigation') {
+        navigate(item.payload); // Payload is URL
+        closeGlobalSearch();
+        setQuery('');
+        setResults([]);
+    } else if (item.type === 'Room') {
+        // Fetch full room details for modal
+        try {
+            const roomData = await roomService.getRoomById(item.payload); 
+            setSelectedRoom(roomData);
+            // Don't close search yet, or maybe do? UX decision. 
+            // Let's close search so modal is main focus.
+            closeGlobalSearch(); 
+        } catch (e) {
+            console.error("Failed to fetch room", e);
+            navigate(`/rooms/${item.payload}`); // Fallback
+            closeGlobalSearch();
+        }
+    } else if (item.type === 'Lecturer') {
+         try {
+            const lecturerData = await lecturerService.getLecturerById(item.payload);
+            setSelectedLecturer(lecturerData);
+            closeGlobalSearch();
+        } catch (e) {
+             console.error("Failed to fetch lecturer", e);
+             navigate(`/lecturers/${item.payload}`); // Fallback
+             closeGlobalSearch();
+        }
+    }
   };
   
   // Keyboard navigation
@@ -142,26 +162,39 @@ const GlobalSearch = () => {
             <div className="flex items-center gap-3">
               <DoorOpen className="w-5 h-5 text-gray-500" />
               <div className="flex flex-col">
-                <span className="font-medium text-gray-900 dark:text-gray-100">{item.roomCode}</span>
-                <span className="text-xs text-gray-500">{item.location?.name}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{item.title}</span>
+                <span className="text-xs text-gray-500">{item.subtitle}</span>
               </div>
             </div>
-            <Badge status={item.status}>{item.status}</Badge>
+            <Badge color="blue">Room</Badge>
           </div>
         );
       case 'Lecturer':
         return (
           <div {...itemProps}>
             <div className="flex items-center gap-3">
-              <Avatar name={item.name} src={item.profilePicture} size="sm" />
+              <Avatar name={item.title} size="sm" />
               <div className="flex flex-col">
-                <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
-                <span className="text-xs text-gray-500">{item.department}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100">{item.title}</span>
+                <span className="text-xs text-gray-500">{item.subtitle}</span>
               </div>
             </div>
-            <Badge status={item.status?.status}>{item.status?.status}</Badge>
+            <Badge color="purple">Lecturer</Badge>
           </div>
         );
+      case 'Navigation':
+          return (
+            <div {...itemProps}>
+                <div className="flex items-center gap-3">
+                    <ArrowRight className="w-5 h-5 text-gray-400" />
+                    <div className="flex flex-col">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{item.title}</span>
+                         <span className="text-xs text-gray-500">{item.subtitle}</span>
+                    </div>
+                </div>
+                <div className="text-xs text-gray-400 bg-gray-100 dark:bg-dark-700 px-2 py-1 rounded">Jump to</div>
+            </div>
+          );
       default:
         return null;
     }
@@ -190,64 +223,78 @@ const GlobalSearch = () => {
       );
     }
     return (
-        <EmptyState title="Search for anything" description="Find lecturers, rooms, and offices in an instant." icon={Search} />
+        <EmptyState title="Search for anything" description="Find rooms, lecturers, or settings..." icon={Search} />
     );
   };
 
   return (
-    <AnimatePresence>
-      {isGlobalSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeGlobalSearch}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="relative w-full max-w-lg bg-white dark:bg-dark-900 rounded-xl shadow-2xl mx-4"
-          >
-            {/* Search Input */}
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <Search className="w-5 h-5" />
-              </div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search for lecturers, rooms..."
-                className="w-full bg-transparent text-base pl-12 pr-12 py-4 border-0 focus:ring-0 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
+    <>
+        <AnimatePresence>
+        {isGlobalSearchOpen && (
+            <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={closeGlobalSearch}
+            />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                className="relative w-full max-w-lg bg-white dark:bg-dark-900 rounded-xl shadow-2xl mx-4"
+            >
+                {/* Search Input */}
+                <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Search className="w-5 h-5" />
+                </div>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search for 'Room 101', 'John', or 'Password'..."
+                    className="w-full bg-transparent text-base pl-12 pr-12 py-4 border-0 focus:ring-0 text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                />
+                {query && (
+                    <button
+                    onClick={() => setQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                    <X className="w-5 h-5" />
+                    </button>
+                )}
+                </div>
 
-            {/* Results */}
-            <div className="p-2 max-h-[60vh] overflow-y-auto custom-scrollbar border-t border-gray-200 dark:border-dark-700">
-              <SearchResults />
+                {/* Results */}
+                <div className="p-2 max-h-[60vh] overflow-y-auto custom-scrollbar border-t border-gray-200 dark:border-dark-700">
+                <SearchResults />
+                </div>
+                
+                {/* Footer */}
+                <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-dark-700 flex items-center justify-between">
+                    <span>Tip: Use <kbd className="font-sans font-semibold">↑</kbd> <kbd className="font-sans font-semibold">↓</kbd> to navigate, <kbd className="font-sans font-semibold">↵</kbd> to select.</span>
+                    <button onClick={closeGlobalSearch} className="font-semibold hover:text-gray-700 dark:hover:text-gray-200">ESC</button>
+                </div>
+            </motion.div>
             </div>
-            
-            {/* Footer */}
-            <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-dark-700 flex items-center justify-between">
-                <span>Tip: Use <kbd className="font-sans font-semibold">↑</kbd> <kbd className="font-sans font-semibold">↓</kbd> to navigate, <kbd className="font-sans font-semibold">↵</kbd> to select.</span>
-                <button onClick={closeGlobalSearch} className="font-semibold hover:text-gray-700 dark:hover:text-gray-200">ESC</button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+        )}
+        </AnimatePresence>
+
+        {/* Modals are rendered here, controlled by state */}
+        <LecturerModal 
+            isOpen={!!selectedLecturer} 
+            lecturer={selectedLecturer} 
+            onClose={() => setSelectedLecturer(null)} 
+        />
+        <RoomModal 
+            isOpen={!!selectedRoom} 
+            room={selectedRoom} 
+            onClose={() => setSelectedRoom(null)} 
+        />
+    </>
   );
 };
 

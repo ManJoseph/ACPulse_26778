@@ -35,7 +35,8 @@ public class Notification {
     private LocalDateTime readAt;
 
     public enum NotificationType {
-        APPROVAL, REJECTION, STATUS_CHANGE, ROOM_EXPIRY, ANNOUNCEMENT
+        APPROVAL, REJECTION, STATUS_CHANGE, ROOM_EXPIRY, ANNOUNCEMENT,
+        INFO, WARNING, SUCCESS, ERROR
     }
 
     // Getters and Setters

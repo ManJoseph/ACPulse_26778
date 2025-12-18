@@ -6,6 +6,7 @@ import EmptyState from '../components/common/EmptyState';
 import Pagination from '../components/common/Pagination';
 import { Users } from 'lucide-react';
 import lecturerService from '../services/lecturerService'; // Corrected import
+import LecturerModal from '../components/lecturers/LecturerModal';
 
 const Lecturers = () => {
   const [lecturers, setLecturers] = useState([]);
@@ -18,6 +19,7 @@ const Lecturers = () => {
     page: 0,
     size: 9,
   });
+  const [selectedLecturer, setSelectedLecturer] = useState(null);
 
   // Fetch lecturers data
   const fetchLecturers = async () => {
@@ -95,7 +97,11 @@ const Lecturers = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lecturers.map((lecturer) => (
-              <LecturerCard key={lecturer.id} lecturer={lecturer} />
+              <LecturerCard 
+                key={lecturer.id} 
+                lecturer={lecturer} 
+                onClick={(l) => setSelectedLecturer(l)}
+              />
             ))}
           </div>
           {pageData && ( // Render pagination only if pageData exists
@@ -107,6 +113,12 @@ const Lecturers = () => {
           )}
         </>
       )}
+
+      <LecturerModal 
+        isOpen={!!selectedLecturer}
+        lecturer={selectedLecturer}
+        onClose={() => setSelectedLecturer(null)}
+      />
     </div>
   );
 };

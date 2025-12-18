@@ -7,3 +7,4 @@ export { default as locationService } from './locationService';
 export { default as staffService } from './staffService';
 export { default as userService } from './userService';
 export { default as api } from './api';
+export { default as searchService } from './searchService';

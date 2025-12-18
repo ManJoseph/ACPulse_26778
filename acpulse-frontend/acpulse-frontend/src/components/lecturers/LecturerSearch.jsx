@@ -7,10 +7,9 @@ import { LECTURER_STATUS } from '../../utils/constants';
 const LecturerSearch = ({ filters, setFilters }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prevFilters) => ({
-      ...prevFilters,
+    setFilters({
       [name]: value,
-    }));
+    });
   };
 
   return (

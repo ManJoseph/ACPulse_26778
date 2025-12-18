@@ -5,6 +5,7 @@ import RoomCard from '../components/rooms/RoomCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
 import Pagination from '../components/common/Pagination';
+import RoomModal from '../components/rooms/RoomModal';
 import { DoorOpen } from 'lucide-react';
 
 const Rooms = () => {
@@ -14,6 +15,7 @@ const Rooms = () => {
     page: 0,
     size: 9,
   });
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   const { rooms, page, isLoading, isFetching, error } = useRooms(filters);
 
@@ -66,7 +68,11 @@ const Rooms = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map((room) => (
-              <RoomCard key={room.id} room={room} />
+              <RoomCard 
+                key={room.id} 
+                room={room} 
+                onClick={(r) => setSelectedRoom(r)} 
+              />
             ))}
           </div>
           {page && (
@@ -78,6 +84,12 @@ const Rooms = () => {
           )}
         </>
       )}
+
+      <RoomModal 
+          isOpen={!!selectedRoom}
+          room={selectedRoom}
+          onClose={() => setSelectedRoom(null)}
+      />
     </div>
   );
 };
