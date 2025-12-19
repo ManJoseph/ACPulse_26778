@@ -214,7 +214,7 @@ const LecturerDashboard = () => {
       title: 'Room Availability',
       description: 'Check if a room is available for consultation or meeting.',
       action: () => navigate('/rooms'),
-      buttonText: 'Find a Room',
+      buttonText: 'Occupy Room',
       variant: 'secondary',
       gradient: 'from-secondary-500 to-secondary-600'
     },

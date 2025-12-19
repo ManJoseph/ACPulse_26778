@@ -85,8 +85,13 @@ const roomService = {
     const newEndTime = new Date();
     newEndTime.setMinutes(newEndTime.getMinutes() + (data.duration || 30));
     
+    // Fix: Send LOCAL time ISO string (not UTC) because backend deserializes to LocalDateTime literal
+    // This handles the timezone offset (e.g. UTC+2) correctly so backend sees '13:00' not '11:00'
+    const offsetMs = newEndTime.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(newEndTime.getTime() - offsetMs).toISOString().slice(0, -1);
+
     const payload = {
-      newEndTime: newEndTime.toISOString()
+      newEndTime: localISOTime
     };
     
     const response = await api.put(`/lecturer/extend-room/${roomId}?lecturerId=${userId}`, payload);

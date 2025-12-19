@@ -120,7 +120,7 @@ public class RoomService {
         System.out.println("Lecturer ID trying to extend: " + lecturerId);
         System.out.println("Room ID: " + roomId);
         System.out.println("Room current lecturer: " + (room.getCurrentLecturer() != null ? room.getCurrentLecturer().getId() : "null"));
-        System.out.println("New end time: " + request.getNewEndTime());
+        System.out.println("Room status: " + room.getStatus());
 
         // CRITICAL FIX: Check both room.currentLecturer AND lecturer status
         boolean isOccupiedByLecturer = false;
@@ -130,32 +130,38 @@ public class RoomService {
             isOccupiedByLecturer = true;
         }
         
-        // Check 2: Lecturer's active status (fallback)
+        // Check 2: Fallback logic (Same as releaseRoom)
         if (!isOccupiedByLecturer) {
-            Optional<LecturerStatus> statusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
-            if (statusOpt.isPresent() && statusOpt.get().getCurrentRoom() != null) {
-                if (statusOpt.get().getCurrentRoom().getId().equals(roomId)) {
-                    isOccupiedByLecturer = true;
-                    // Sync the room's currentLecturer field
-                    User lecturer = userRepository.findById(lecturerId)
-                            .orElseThrow(() -> new NotFoundException("Lecturer not found"));
-                    room.setCurrentLecturer(lecturer);
-                    System.out.println("FIXED: Synced room.currentLecturer from lecturer status");
-                }
-            }
-        }
-        
-        if (!isOccupiedByLecturer) {
-            // Check for "Zombie" state: Room says OCCUPIED but currentLecturer is null
-            // OR Room says AVAILABLE (expired?) but user thinks they are here.
             
-            // If room is AVAILABLE, checking status to see if we SHOULD have been there
+            // If room is occupied by SOMEONE ELSE, reject
+            if (room.getCurrentLecturer() != null && !lecturerId.equals(room.getCurrentLecturer().getId())) {
+                throw new BadRequestException("Room is currently occupied by another lecturer (" + room.getCurrentLecturer().getName() + ")");
+            }
+
+            // If room is AVAILABLE, allow (re-occupation)
             if (room.getStatus() == Room.RoomStatus.AVAILABLE) {
                  System.out.println("Room is AVAILABLE. Proceeding with extension (re-occupation).");
-                 isOccupiedByLecturer = true;
-            } else if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() == null) {
-                  System.out.println("Zombie state detected (Occupied with null lecturer). Allowing extension.");
-                  isOccupiedByLecturer = true;
+                 isOccupiedByLecturer = true; 
+            } else {
+                 // Fallback: Check if status says we are here
+                Optional<LecturerStatus> statusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
+                if (statusOpt.isPresent() && statusOpt.get().getCurrentRoom() != null) {
+                    if (statusOpt.get().getCurrentRoom().getId().equals(roomId)) {
+                        isOccupiedByLecturer = true;
+                        // Sync the room's currentLecturer field
+                        User lecturer = userRepository.findById(lecturerId)
+                                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+                        room.setCurrentLecturer(lecturer);
+                        System.out.println("FIXED: Synced room.currentLecturer from lecturer status");
+                    }
+                }
+                
+                // EXTRA SAFETY: If we are STILL false, but the room is OCCUPIED with NULL lecturer
+                // This is the specific zombie case the user seems to be hitting if status check fails
+                if (!isOccupiedByLecturer && room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() == null) {
+                     System.out.println("Zombie state detected (Occupied with null lecturer). Allowing extension.");
+                     isOccupiedByLecturer = true;
+                }
             }
         }
         
