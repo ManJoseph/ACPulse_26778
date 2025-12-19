@@ -1,37 +1,30 @@
 import api from './api';
-import { useAuthStore } from '../store/authStore';
-
-const getUserId = () => useAuthStore.getState().user?.userId;
 
 const notificationService = {
-  // Get all notifications for current user
-  getNotifications: async () => {
-    const userId = getUserId();
-    if (!userId) throw new Error('User not authenticated');
+  // Get all notifications for a user
+  getNotifications: async (userId) => {
+    if (!userId) throw new Error('User ID is required');
     const response = await api.get(`/notifications?userId=${userId}`);
     return response.data;
   },
 
-  // Get unread count for current user
-  getUnreadCount: async () => {
-    const userId = getUserId();
-    if (!userId) throw new Error('User not authenticated');
+  // Get unread count for a user
+  getUnreadCount: async (userId) => {
+    if (!userId) throw new Error('User ID is required');
     const response = await api.get(`/notifications/unread-count?userId=${userId}`);
-    return response.data;
+    return response.data.count || 0; // Extract count from response
   },
 
-  // Mark all as read for current user
-  markAllAsRead: async () => {
-    const userId = getUserId();
-    if (!userId) throw new Error('User not authenticated');
+  // Mark all as read for a user
+  markAllAsRead: async (userId) => {
+    if (!userId) throw new Error('User ID is required');
     const response = await api.put(`/notifications/read/all?userId=${userId}`);
     return response.data;
   },
 
   // Mark a single notification as read
-  markAsRead: async (notificationId) => {
-    const userId = getUserId();
-    if (!userId) throw new Error('User not authenticated');
+  markAsRead: async (notificationId, userId) => {
+    if (!userId) throw new Error('User ID is required');
     const response = await api.put(`/notifications/${notificationId}/read?userId=${userId}`);
     return response.data;
   }

@@ -2,13 +2,23 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Button from '../common/Button';
 import Card from '../common/Card';
-import { DoorOpen, Users, Search, BookOpen, Bell, Calendar } from 'lucide-react';
+import { DoorOpen, Users, Search, BookOpen, Bell, Calendar, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useQuery } from '@tanstack/react-query';
+import { notificationService } from '../../services';
 
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  // Fetch unread notification count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: () => notificationService.getUnreadCount(user?.id),
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   const quickActions = [
     {
@@ -57,10 +67,12 @@ const StudentDashboard = () => {
             Here's what's happening on campus today
           </p>
         </div>
-        <button className="btn-secondary-modern flex items-center gap-2">
+        <button onClick={() => navigate('/notifications')} className="btn-secondary-modern flex items-center gap-2">
           <Bell className="w-5 h-5" />
           <span>Notifications</span>
-          <span className="badge badge-pending ml-2">3</span>
+          {unreadCount > 0 && (
+            <span className="badge badge-pending ml-2">{unreadCount}</span>
+          )}
         </button>
       </div>
 

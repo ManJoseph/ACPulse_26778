@@ -5,15 +5,26 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
-import { adminService } from '../../services';
+import { adminService, notificationService } from '../../services';
 import { toast } from 'react-hot-toast';
+import { useAuthStore } from '../../store/authStore';
+import { useQuery } from '@tanstack/react-query';
 
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Fetch unread notification count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: () => notificationService.getUnreadCount(user?.id),
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -90,11 +101,11 @@ const AdminDashboard = () => {
             System overview and management
           </p>
         </div>
-        <button className="btn-secondary-modern flex items-center gap-2">
+        <button onClick={() => navigate('/notifications')} className="btn-secondary-modern flex items-center gap-2">
           <Bell className="w-5 h-5" />
           <span>Notifications</span>
-          {stats?.pendingVerifications > 0 && (
-            <span className="badge badge-pending ml-2">{stats.pendingVerifications}</span>
+          {unreadCount > 0 && (
+            <span className="badge badge-pending ml-2">{unreadCount}</span>
           )}
         </button>
       </div>

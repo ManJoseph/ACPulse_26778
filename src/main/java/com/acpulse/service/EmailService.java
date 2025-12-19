@@ -4,6 +4,7 @@ import com.acpulse.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,6 +13,7 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Async
     public void sendApprovalEmail(User user) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
@@ -37,6 +39,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendRejectionEmail(User user, String reason) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
@@ -57,6 +60,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendRoomExpiryNotification(User lecturer, String roomNumber) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(lecturer.getEmail());
@@ -72,6 +76,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendOtpEmail(String to, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -80,6 +85,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendPasswordResetEmail(User user, String token) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("josephmanizabayo70@gmail.com");
@@ -102,6 +108,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendPasswordResetRejectionEmail(User user, String reason) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("josephmanizabayo70@gmail.com");

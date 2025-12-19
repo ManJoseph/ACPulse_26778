@@ -110,24 +110,28 @@ public class LecturerService {
         User lecturer = userRepository.findById(lecturerId)
                 .orElseThrow(() -> new NotFoundException("Lecturer not found with id: " + lecturerId));
 
-        Optional<LecturerStatus> activeStatusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
+        Map<String, Object> response = new HashMap<>();
+        response.put("name", lecturer.getName());
 
-        Map<String, Object> statusMap = new HashMap<>();
-        if (activeStatusOpt.isPresent()) {
-            LecturerStatus activeStatus = activeStatusOpt.get();
-            statusMap.put("status", activeStatus.getStatus());
-            statusMap.put("updatedAt", activeStatus.getStatusStartTime());
-            statusMap.put("occupiedUntil", activeStatus.getExpectedEndTime());
-            if (activeStatus.getCurrentRoom() != null) {
-                statusMap.put("office", activeStatus.getCurrentRoom().getRoomName());
-                statusMap.put("roomNumber", activeStatus.getCurrentRoom().getRoomNumber());
-                statusMap.put("building", activeStatus.getCurrentRoom().getBuilding());
-                statusMap.put("floor", activeStatus.getCurrentRoom().getFloor());
-            }
-        } else {
-            statusMap.put("status", "UNKNOWN");
-        }
-        return statusMap;
+        lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true)
+                .ifPresentOrElse(
+                        status -> {
+                            response.put("status", status.getStatus().name());
+                            response.put("customMessage", status.getCustomMessage());
+                            if (status.getCurrentRoom() != null) {
+                                Room room = status.getCurrentRoom();
+                                response.put("office", room.getRoomName());
+                                response.put("roomNumber", room.getRoomNumber());
+                                response.put("roomId", room.getId()); // CRITICAL: Add roomId for release functionality
+                                response.put("building", room.getBuilding());
+                                response.put("floor", room.getFloor());
+                                response.put("occupiedUntil", status.getExpectedEndTime());
+                            }
+                        },
+                        () -> response.put("status", "AVAILABLE")
+                );
+
+        return response;
     }
 
     // New method: Update lecturer's status

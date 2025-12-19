@@ -38,22 +38,35 @@ public class ScheduledTaskService {
         for (Room room : expiredRooms) {
             if (room.getCurrentLecturer() != null) {
                 User lecturer = room.getCurrentLecturer();
-                // Send notification
-                notificationService.createNotification(
-                        lecturer.getId(),
-                        "Room Occupation Expired",
-                        "Your occupation of Room " + room.getRoomNumber() +
-                                " expired at " + room.getOccupiedUntil() +
-                                ". Please extend if still needed or release the room.",
-                        Notification.NotificationType.ROOM_EXPIRY
-                );
                 
-                // Send email notification
-                try {
-                    emailService.sendRoomExpiryNotification(lecturer, room.getRoomNumber());
-                } catch (Exception e) {
-                    // Log but don't fail - email sending is optional
-                    System.err.println("Failed to send email notification: " + e.getMessage());
+                // CRITICAL FIX: Check if email was already sent in the last hour
+                // This prevents infinite duplicate emails
+                LocalDateTime lastEmailSent = room.getLastExpiryEmailSentAt();
+                boolean shouldSendEmail = lastEmailSent == null || 
+                                         lastEmailSent.isBefore(now.minusHours(1));
+                
+                if (shouldSendEmail) {
+                    // Send notification
+                    notificationService.createNotification(
+                            lecturer.getId(),
+                            "Room Occupation Expired",
+                            "Your occupation of Room " + room.getRoomNumber() +
+                                    " expired at " + room.getOccupiedUntil() +
+                                    ". Please extend if still needed or release the room.",
+                            Notification.NotificationType.ROOM_EXPIRY
+                    );
+                    
+                    // Send email notification
+                    try {
+                        emailService.sendRoomExpiryNotification(lecturer, room.getRoomNumber());
+                        
+                        // Mark that email was sent
+                        room.setLastExpiryEmailSentAt(now);
+                        roomRepository.save(room);
+                    } catch (Exception e) {
+                        // Log but don't fail - email sending is optional
+                        System.err.println("Failed to send email notification: " + e.getMessage());
+                    }
                 }
             }
         }

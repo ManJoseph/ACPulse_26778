@@ -12,7 +12,7 @@ import Modal from '../common/Modal';
 import Select from '../common/Select';
 import Input from '../common/Input';
 import { useAuthStore } from '../../store/authStore';
-import { lecturerService, roomService } from '../../services';
+import { lecturerService, roomService, notificationService } from '../../services';
 import { LECTURER_STATUS } from '../../utils/constants';
 
 const UpdateStatusModal = ({ isOpen, onClose, currentStatus }) => {
@@ -82,7 +82,7 @@ const getStatusText = (status) => {
   return status || LECTURER_STATUS.AVAILABLE;
 };
 
-const BookedRoomCard = ({ status, onRelease }) => {
+const BookedRoomCard = ({ status, onRelease, onExtend, isReleasing, isExtending }) => {
   // Show card if *either* office (name) OR roomNumber exists
   if (!status?.office && !status?.roomNumber) return null;
 
@@ -122,10 +122,25 @@ const BookedRoomCard = ({ status, onRelease }) => {
           </div>
         </div>
 
-        <button onClick={onRelease} className="btn-danger-modern w-full flex items-center justify-center gap-2">
-          <LogOut className="w-4 h-4" />
-          Release Room
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button 
+            onClick={onExtend}
+            disabled={isExtending || isReleasing}
+            className="btn-primary-modern flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Clock className="w-4 h-4" />
+            {isExtending ? 'Extending...' : 'Extend (+30m)'}
+          </button>
+          
+          <button 
+            onClick={onRelease} 
+            disabled={isReleasing || isExtending}
+            className="btn-danger-modern flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut className="w-4 h-4" />
+            {isReleasing ? 'Releasing...' : 'Release'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -146,9 +161,41 @@ const LecturerDashboard = () => {
     refetchInterval: 30000, // Refresh every 30s
   });
 
+  // Fetch unread notification count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', lecturerId],
+    queryFn: () => notificationService.getUnreadCount(lecturerId),
+    enabled: !!lecturerId,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Room release mutation
   const releaseMutation = useMutation({
-    mutationFn: async () => {
-      toast.error("Release function requires room ID (pending update)");
+    mutationFn: async (roomId) => {
+      return await roomService.releaseRoom(roomId);
+    },
+    onSuccess: () => {
+      toast.success('Room released successfully!');
+      // Refetch lecturer status to update UI
+      queryClient.invalidateQueries(['lecturerStatus', lecturerId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to release room');
+    }
+  });
+
+  // Room extend mutation
+  const extendMutation = useMutation({
+    mutationFn: async ({ roomId, duration }) => {
+      return await roomService.extendRoom(roomId, { duration });
+    },
+    onSuccess: () => {
+      toast.success('Booking extended by 30 minutes!');
+      // Refetch lecturer status to update UI
+      queryClient.invalidateQueries(['lecturerStatus', lecturerId]);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to extend booking');
     }
   });
 
@@ -181,6 +228,8 @@ const LecturerDashboard = () => {
       gradient: 'from-accent-500 to-accent-600'
     }
   ];
+
+
 
   return (
     <>
@@ -227,9 +276,12 @@ const LecturerDashboard = () => {
                 </div>
               </div>
             </div>
-            <button className="btn-secondary-modern flex items-center gap-2">
+            <button onClick={() => navigate('/notifications')} className="btn-secondary-modern flex items-center gap-2">
               <Bell className="w-4 h-4" />
               Notifications
+              {unreadCount > 0 && (
+                <span className="badge badge-pending ml-2">{unreadCount}</span>
+              )}
             </button>
           </div>
         </div>
@@ -245,7 +297,21 @@ const LecturerDashboard = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Booked Room Card - component handles its own visibility */}
-            <BookedRoomCard status={statusData} onRelease={() => navigate(`/rooms`)} />
+            <BookedRoomCard 
+              status={statusData} 
+              onRelease={() => {
+                if (statusData?.roomId) {
+                  releaseMutation.mutate(statusData.roomId);
+                }
+              }}
+              onExtend={() => {
+                if (statusData?.roomId) {
+                  extendMutation.mutate({ roomId: statusData.roomId, duration: 30 });
+                }
+              }}
+              isReleasing={releaseMutation.isPending}
+              isExtending={extendMutation.isPending}
+            />
 
             {quickActions.map((action, index) => (
               <motion.div

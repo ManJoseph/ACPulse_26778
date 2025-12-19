@@ -110,13 +110,57 @@ public class RoomService {
     }
 
     @Transactional
+
     public Map<String, String> extendRoom(Integer lecturerId, Integer roomId, ExtendRoomRequest request) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
-        // Verify lecturer is currently occupying this room
-        if (room.getCurrentLecturer() == null || !lecturerId.equals(room.getCurrentLecturer().getId())) {
-            throw new BadRequestException("You are not currently occupying this room");
+        // Debug logging
+        System.out.println("=== EXTEND ROOM DEBUG ===");
+        System.out.println("Lecturer ID trying to extend: " + lecturerId);
+        System.out.println("Room ID: " + roomId);
+        System.out.println("Room current lecturer: " + (room.getCurrentLecturer() != null ? room.getCurrentLecturer().getId() : "null"));
+        System.out.println("New end time: " + request.getNewEndTime());
+
+        // CRITICAL FIX: Check both room.currentLecturer AND lecturer status
+        boolean isOccupiedByLecturer = false;
+        
+        // Check 1: Room's currentLecturer field
+        if (room.getCurrentLecturer() != null && lecturerId.equals(room.getCurrentLecturer().getId())) {
+            isOccupiedByLecturer = true;
+        }
+        
+        // Check 2: Lecturer's active status (fallback)
+        if (!isOccupiedByLecturer) {
+            Optional<LecturerStatus> statusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
+            if (statusOpt.isPresent() && statusOpt.get().getCurrentRoom() != null) {
+                if (statusOpt.get().getCurrentRoom().getId().equals(roomId)) {
+                    isOccupiedByLecturer = true;
+                    // Sync the room's currentLecturer field
+                    User lecturer = userRepository.findById(lecturerId)
+                            .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+                    room.setCurrentLecturer(lecturer);
+                    System.out.println("FIXED: Synced room.currentLecturer from lecturer status");
+                }
+            }
+        }
+        
+        if (!isOccupiedByLecturer) {
+            // Check for "Zombie" state: Room says OCCUPIED but currentLecturer is null
+            // OR Room says AVAILABLE (expired?) but user thinks they are here.
+            
+            // If room is AVAILABLE, checking status to see if we SHOULD have been there
+            if (room.getStatus() == Room.RoomStatus.AVAILABLE) {
+                 System.out.println("Room is AVAILABLE. Proceeding with extension (re-occupation).");
+                 isOccupiedByLecturer = true;
+            } else if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() == null) {
+                  System.out.println("Zombie state detected (Occupied with null lecturer). Allowing extension.");
+                  isOccupiedByLecturer = true;
+            }
+        }
+        
+        if (!isOccupiedByLecturer) {
+             throw new BadRequestException("You are not currently occupying this room");
         }
 
         // Check if new end time is in the future
@@ -127,6 +171,18 @@ public class RoomService {
         // Update room
         room.setOccupiedUntil(request.getNewEndTime());
         room.setStatusUpdatedAt(LocalDateTime.now());
+        
+        // CRITICAL: Ensure we fix the room state if it was broken/zombie
+        if (room.getStatus() != Room.RoomStatus.OCCUPIED || room.getCurrentLecturer() == null) {
+            room.setStatus(Room.RoomStatus.OCCUPIED);
+            // We need to fetch the lecturer entity if we don't have it (we only have ID)
+            if (room.getCurrentLecturer() == null) {
+                User lecturer = userRepository.findById(lecturerId)
+                        .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+                room.setCurrentLecturer(lecturer);
+            }
+        }
+        
         roomRepository.save(room);
 
         // Update lecturer status
@@ -146,15 +202,78 @@ public class RoomService {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("Room not found"));
 
-        // Verify lecturer is currently occupying this room
-        if (room.getCurrentLecturer() == null || !lecturerId.equals(room.getCurrentLecturer().getId())) {
-            throw new BadRequestException("You are not currently occupying this room");
+        // Debug logging
+        System.out.println("=== RELEASE ROOM DEBUG ===");
+        System.out.println("Lecturer ID trying to release: " + lecturerId);
+        System.out.println("Room ID: " + roomId);
+        System.out.println("Room current lecturer: " + (room.getCurrentLecturer() != null ? room.getCurrentLecturer().getId() : "null"));
+        System.out.println("Room status: " + room.getStatus());
+
+        // CRITICAL FIX: Check both room.currentLecturer AND lecturer status
+        // This handles cases where room was occupied via status update (not occupyRoom)
+        boolean isOccupiedByLecturer = false;
+        
+        // Check 1: Room's currentLecturer field
+        if (room.getCurrentLecturer() != null && lecturerId.equals(room.getCurrentLecturer().getId())) {
+            isOccupiedByLecturer = true;
+        }
+        
+        // Check 2: Lecturer's active status (fallback for status-based occupations)
+        // AND Check 3: Idempotency - If room is AVAILABLE, allow "release" to ensure status cleanup
+        if (!isOccupiedByLecturer) {
+            
+            // If room is occupied by SOMEONE ELSE, reject
+            if (room.getCurrentLecturer() != null && !lecturerId.equals(room.getCurrentLecturer().getId())) {
+                throw new BadRequestException("Room is currently occupied by another lecturer (" + room.getCurrentLecturer().getName() + ")");
+            }
+
+            // If room is AVAILABLE, checking status to see if we SHOULD have been there
+            if (room.getStatus() == Room.RoomStatus.AVAILABLE) {
+                 System.out.println("Room is AVAILABLE. Proceeding with idempotent release to cleanup status.");
+                 isOccupiedByLecturer = true; // Allow proceeding
+            } else {
+                 // Room is occupied (but not by us?) or some other state.
+                 // Fallback: Check if status says we are here
+                Optional<LecturerStatus> statusOpt = lecturerStatusRepository.findByLecturer_IdAndIsActive(lecturerId, true);
+                if (statusOpt.isPresent() && statusOpt.get().getCurrentRoom() != null) {
+                    if (statusOpt.get().getCurrentRoom().getId().equals(roomId)) {
+                        isOccupiedByLecturer = true;
+                        // Sync the room's currentLecturer field
+                        User lecturer = userRepository.findById(lecturerId)
+                                .orElseThrow(() -> new NotFoundException("Lecturer not found"));
+                        room.setCurrentLecturer(lecturer);
+                        System.out.println("FIXED: Synced room.currentLecturer from lecturer status");
+                    }
+                }
+            }
+        }
+        
+        if (!isOccupiedByLecturer) {
+             // One last check: if room is AVAILABLE, we already set isOccupiedByLecturer=true.
+             // So here means: Room occupied by someone else OR Room occupied by null but status checks failed?
+             // Actually, if Room is AVAILABLE, we allow it.
+             
+             // So this only throws if Room is OCCUPIED by someone else (caught above) 
+             // OR Room is OCCUPIED by null (which is effectively AVAILABLE? No, status could be OCCUPIED but currentLecturer null)
+             
+             // If Status is OCCUPIED but currentLecturer is null:
+             if (room.getStatus() == Room.RoomStatus.OCCUPIED && room.getCurrentLecturer() == null) {
+                  // This is a zombie state. We allow ensuring this user can clear it if they think they are here.
+                  // But safely, we should probably allow it.
+                  System.out.println("Zombie state detected (Occupied with null lecturer). Allowing release.");
+                  isOccupiedByLecturer = true;
+             }
+        }
+        
+        if (!isOccupiedByLecturer) {
+             throw new BadRequestException("You are not currently occupying this room");
         }
 
         // Release room
         room.setStatus(Room.RoomStatus.AVAILABLE);
         room.setCurrentLecturer(null);
         room.setOccupiedUntil(null);
+        room.setLastExpiryEmailSentAt(null); // CRITICAL: Reset email tracking
         room.setStatusUpdatedAt(LocalDateTime.now());
         roomRepository.save(room);
 

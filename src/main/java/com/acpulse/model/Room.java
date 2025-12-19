@@ -42,6 +42,9 @@ public class Room {
     @Column(name = "occupied_until")
     private LocalDateTime occupiedUntil;
 
+    @Column(name = "last_expiry_email_sent_at")
+    private LocalDateTime lastExpiryEmailSentAt;
+
     // One-to-Many: Room → LecturerStatus
     @OneToMany(mappedBy = "currentRoom", fetch = FetchType.LAZY)
     @JsonIgnore
@@ -120,4 +123,9 @@ public class Room {
 
     public User getOfficeOwner() { return officeOwner; }
     public void setOfficeOwner(User officeOwner) { this.officeOwner = officeOwner; }
+
+    public LocalDateTime getLastExpiryEmailSentAt() { return lastExpiryEmailSentAt; }
+    public void setLastExpiryEmailSentAt(LocalDateTime lastExpiryEmailSentAt) {
+        this.lastExpiryEmailSentAt = lastExpiryEmailSentAt;
+    }
 }
