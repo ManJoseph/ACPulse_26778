@@ -276,14 +276,44 @@ public class AdminService {
             throw new IllegalStateException("Request has already been actioned.");
         }
 
-        String token = UUID.randomUUID().toString();
-        request.setToken(token);
+        // Check if token has expired before approving
+        if (LocalDateTime.now().isAfter(request.getExpiryDate())) {
+            throw new com.acpulse.exception.BadRequestException("This reset request has expired. User must submit a new request.");
+        }
+
+        // Simply approve - token already exists from forgotPassword()
         request.setStatus(PasswordResetRequest.RequestStatus.APPROVED);
-        request.setExpiryDate(LocalDateTime.now().plusHours(1)); // Token valid for 1 hour
         request.setReviewedAt(LocalDateTime.now());
         request.setReviewedBy(admin);
         passwordResetRequestRepository.save(request);
 
-        emailService.sendPasswordResetEmail(request.getUser(), token);
+        // Send email with existing token
+        emailService.sendPasswordResetEmail(request.getUser(), request.getToken());
+    }
+
+    @Transactional
+    public Map<String, String> rejectPasswordReset(Integer requestId, Integer adminId, String reason) {
+        PasswordResetRequest request = passwordResetRequestRepository.findById(requestId)
+                .orElseThrow(() -> new NotFoundException("Password reset request not found"));
+
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new NotFoundException("Admin user not found"));
+
+        if (request.getStatus() != PasswordResetRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Request has already been actioned.");
+        }
+
+        // Reject the request
+        request.setStatus(PasswordResetRequest.RequestStatus.REJECTED);
+        request.setReviewedAt(LocalDateTime.now());
+        request.setReviewedBy(admin);
+        passwordResetRequestRepository.save(request);
+
+        // Send rejection email
+        emailService.sendPasswordResetRejectionEmail(request.getUser(), reason);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Password reset request rejected successfully");
+        return response;
     }
 }

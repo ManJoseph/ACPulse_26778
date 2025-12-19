@@ -58,6 +58,14 @@ const adminService = {
     const response = await api.post(`/admin/password-reset-requests/${requestId}/approve?adminId=${adminId}`);
     return response.data;
   },
+
+  // Reject a password reset request
+  rejectPasswordResetRequest: async (requestId, adminId, reason) => {
+    const response = await api.post(`/admin/password-reset-requests/${requestId}/reject?adminId=${adminId}`, {
+      reason
+    });
+    return response.data;
+  },
 };
 
 export default adminService;

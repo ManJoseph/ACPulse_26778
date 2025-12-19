@@ -98,4 +98,15 @@ public class AdminController {
         adminService.approvePasswordReset(id, adminId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/password-reset-requests/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, String>> rejectPasswordResetRequest(
+            @PathVariable Integer id, 
+            @RequestParam Integer adminId,
+            @RequestBody Map<String, String> body) {
+        String reason = body.get("reason");
+        Map<String, String> response = adminService.rejectPasswordReset(id, adminId, reason);
+        return ResponseEntity.ok(response);
+    }
 }

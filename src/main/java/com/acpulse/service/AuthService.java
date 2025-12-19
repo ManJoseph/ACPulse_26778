@@ -184,8 +184,13 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
+        // Generate token immediately upon request (not at approval)
+        String token = java.util.UUID.randomUUID().toString();
+        
         PasswordResetRequest resetRequest = new PasswordResetRequest();
         resetRequest.setUser(user);
+        resetRequest.setToken(token);
+        resetRequest.setExpiryDate(LocalDateTime.now().plusHours(1)); // Expires 1 hour from NOW
         resetRequest.setStatus(PasswordResetRequest.RequestStatus.PENDING);
         
         passwordResetRequestRepository.save(resetRequest);
@@ -196,19 +201,34 @@ public class AuthService {
         PasswordResetRequest request = passwordResetRequestRepository.findByToken(token)
                 .orElseThrow(() -> new BadRequestException("Invalid or expired password reset token."));
 
+        // Check if already used (CRITICAL: Single-use enforcement)
+        if (request.getStatus() == PasswordResetRequest.RequestStatus.COMPLETED) {
+            throw new BadRequestException("This password reset link has already been used. Please request a new one.");
+        }
+
+        // Check if rejected by admin
+        if (request.getStatus() == PasswordResetRequest.RequestStatus.REJECTED) {
+            throw new BadRequestException("This password reset request was rejected. Please contact support.");
+        }
+
+        // Check if not approved yet
         if (request.getStatus() != PasswordResetRequest.RequestStatus.APPROVED) {
-            throw new BadRequestException("Password reset request not approved or already completed.");
+            throw new BadRequestException("Password reset request is pending admin approval.");
         }
 
+        // Check expiration (1 hour from request creation)
         if (LocalDateTime.now().isAfter(request.getExpiryDate())) {
-            throw new BadRequestException("Password reset token has expired.");
+            throw new BadRequestException("This password reset link has expired. Please request a new one.");
         }
 
+        // Reset password
         User user = request.getUser();
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
+        // CRITICAL: Mark as completed immediately to prevent reuse
         request.setStatus(PasswordResetRequest.RequestStatus.COMPLETED);
+        request.setReviewedAt(LocalDateTime.now());
         passwordResetRequestRepository.save(request);
     }
 

@@ -1,0 +1,18 @@
+    public void sendPasswordResetRejectionEmail(User user, String reason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("yourgmail@gmail.com");
+        message.setTo(user.getEmail());
+        message.setSubject("ACPulse - Password Reset Request Update");
+        
+        message.setText(
+                "Dear " + user.getName() + ",\n\n" +
+                "We regret to inform you that your recent password reset request has been reviewed and cannot be processed at this time.\n\n" +
+                "Reason: " + reason + "\n\n" +
+                "If you believe this is an error or need further assistance, please contact our support team or visit the help desk.\n\n" +
+                "For security reasons, you may submit a new password reset request if needed.\n\n" +
+                "Best regards,\n" +
+                "ACPulse System Administration\n" +
+                "Adventist University of Central Africa"
+        );
+        mailSender.send(message);
+    }

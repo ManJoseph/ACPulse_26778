@@ -15,18 +15,23 @@ public class EmailService {
     public void sendApprovalEmail(User user) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
-        message.setSubject("Welcome to ACPulse! Your Account is Approved ✅");
+        message.setSubject("ACPulse Account Approved - Welcome to the System");
         message.setText(
                 "Dear " + user.getName() + ",\n\n" +
-                        "Thank you for registering with ACPulse!\n\n" +
-                        "Your registration request has been validated and approved.\n\n" +
-                        "Login Credentials:\n" +
-                        "- Email: " + user.getEmail() + "\n" +
-                        "- Password: (the password you created during registration)\n\n" +
-                        "You can now login to the system.\n\n" +
-                        "Best regards,\n" +
-                        "ACPulse Team\n" +
-                        "Adventist University of Central Africa"
+                "We are pleased to inform you that your ACPulse account has been successfully approved.\n\n" +
+                "Account Details:\n" +
+                "- Name: " + user.getName() + "\n" +
+                "- Email: " + user.getEmail() + "\n" +
+                "- Role: " + user.getRole().getRoleName() + "\n" +
+                "- Department: " + (user.getDepartment() != null ? user.getDepartment() : "Not specified") + "\n\n" +
+                "Next Steps:\n" +
+                "1. Visit the ACPulse portal at: http://localhost:5173\n" +
+                "2. Log in using your registered email and password\n" +
+                "3. Complete your profile setup if required\n\n" +
+                "If you have any questions or need assistance, please contact our support team.\n\n" +
+                "Best regards,\n" +
+                "ACPulse System Administration\n" +
+                "Adventist University of Central Africa"
         );
 
         mailSender.send(message);
@@ -77,7 +82,7 @@ public class EmailService {
 
     public void sendPasswordResetEmail(User user, String token) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("yourgmail@gmail.com"); // Match sender with config
+        message.setFrom("josephmanizabayo70@gmail.com");
         message.setTo(user.getEmail());
         message.setSubject("ACPulse - Password Reset Request Approved");
         
@@ -93,6 +98,25 @@ public class EmailService {
                 "If you did not request a password reset, please ignore this email or contact support.\n\n" +
                 "Best regards,\n" +
                 "The ACPulse Team"
+        );
+        mailSender.send(message);
+    }
+
+    public void sendPasswordResetRejectionEmail(User user, String reason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("josephmanizabayo70@gmail.com");
+        message.setTo(user.getEmail());
+        message.setSubject("ACPulse - Password Reset Request Update");
+        
+        message.setText(
+                "Dear " + user.getName() + ",\n\n" +
+                "We regret to inform you that your recent password reset request has been reviewed and cannot be processed at this time.\n\n" +
+                "Reason: " + reason + "\n\n" +
+                "If you believe this is an error or need further assistance, please contact our support team or visit the help desk.\n\n" +
+                "For security reasons, you may submit a new password reset request if needed.\n\n" +
+                "Best regards,\n" +
+                "ACPulse System Administration\n" +
+                "Adventist University of Central Africa"
         );
         mailSender.send(message);
     }
