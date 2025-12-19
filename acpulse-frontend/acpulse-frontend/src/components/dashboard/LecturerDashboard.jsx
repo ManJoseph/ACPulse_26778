@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DoorOpen, Calendar, Edit, MapPin, Clock, Building, LogOut } from 'lucide-react';
+import { DoorOpen, Calendar, Edit, MapPin, Clock, Building, LogOut, Bell, Users, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -16,190 +16,297 @@ import { lecturerService, roomService } from '../../services';
 import { LECTURER_STATUS } from '../../utils/constants';
 
 const UpdateStatusModal = ({ isOpen, onClose, currentStatus }) => {
-    const { register, handleSubmit, formState: { isSubmitting } } = useForm({
-        defaultValues: {
-            status: currentStatus?.status || LECTURER_STATUS.AVAILABLE,
-            message: currentStatus?.message || '',
-        }
-    });
-    const { setUser, user } = useAuthStore();
+  const { register, handleSubmit, formState: { isSubmitting } } = useForm({
+    defaultValues: {
+      status: currentStatus?.status || LECTURER_STATUS.AVAILABLE,
+      message: currentStatus?.message || '',
+    }
+  });
+  const { setUser, user } = useAuthStore();
 
-    const onSubmit = async (data) => {
-        try {
-            const lecturerId = user?.userId || user?.id;
-            const updatedStatus = await lecturerService.updateStatus(lecturerId, data);
-            // Update user in store to reflect new status
-            setUser({ ...user, status: updatedStatus });
-            toast.success('Status updated successfully!');
-            onClose();
-        } catch (error) {
-            toast.error(error.message || 'Failed to update status.');
-        }
-    };
+  const onSubmit = async (data) => {
+    try {
+      const lecturerId = user?.userId || user?.id;
+      const updatedStatus = await lecturerService.updateStatus(lecturerId, data);
+      // Update user in store to reflect new status
+      setUser({ ...user, status: updatedStatus });
+      toast.success('Status updated successfully!');
+      onClose();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update status.');
+    }
+  };
 
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Update Your Status">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Select
-                    label="Current Status"
-                    id="status"
-                    {...register('status')}
-                >
-                    {Object.values(LECTURER_STATUS).map(status => (
-                        <option key={status} value={status}>{status}</option>
-                    ))}
-                </Select>
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Update Your Status">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Select
+          label="Current Status"
+          id="status"
+          {...register('status')}
+        >
+          {Object.values(LECTURER_STATUS).map(status => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </Select>
 
-                <Input
-                    label="Custom Message (Optional)"
-                    id="message"
-                    placeholder="e.g., In a meeting until 3 PM"
-                    {...register('message')}
-                />
+        <Input
+          label="Custom Message (Optional)"
+          id="message"
+          placeholder="e.g., In a meeting until 3 PM"
+          {...register('message')}
+        />
 
-                <Modal.Footer
-                    onCancel={onClose}
-                    onConfirm={handleSubmit(onSubmit)}
-                    confirmText="Update Status"
-                    loading={isSubmitting}
-                />
-            </form>
-        </Modal>
-    );
+        <Modal.Footer
+          onCancel={onClose}
+          onConfirm={handleSubmit(onSubmit)}
+          confirmText="Update Status"
+          loading={isSubmitting}
+        />
+      </form>
+    </Modal>
+  );
+};
+
+const getStatusBadgeClass = (status) => {
+  const statusMap = {
+    [LECTURER_STATUS.AVAILABLE]: 'badge-available',
+    [LECTURER_STATUS.TEACHING]: 'badge-teaching',
+    [LECTURER_STATUS.AWAY]: 'badge-away',
+    [LECTURER_STATUS.OCCUPIED]: 'badge-occupied',
+  };
+  return statusMap[status] || 'badge-available';
+};
+
+const getStatusText = (status) => {
+  return status || LECTURER_STATUS.AVAILABLE;
 };
 
 const BookedRoomCard = ({ status, onRelease }) => {
-    // Show card if *either* office (name) OR roomNumber exists
-    if (!status?.office && !status?.roomNumber) return null;
+  // Show card if *either* office (name) OR roomNumber exists
+  if (!status?.office && !status?.roomNumber) return null;
 
-    const displayName = status.office || `Room ${status.roomNumber}`;
+  const displayName = status.office || `Room ${status.roomNumber}`;
 
-    return (
-        <Card className="flex flex-col p-6 hover:shadow-lg transition-shadow border-l-4 border-green-500">
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                        <DoorOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Current Room</h3>
-                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">Active Session</p>
-                    </div>
-                </div>
+  return (
+    <div className="card-premium border-l-4 border-green-500">
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-container-lg bg-gradient-to-br from-green-500 to-green-600">
+              <DoorOpen className="w-8 h-8 text-white" />
             </div>
-
-            <div className="space-y-3 mb-6">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{displayName}</span>
-                    <span className="text-sm px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-gray-600 dark:text-gray-300">
-                        #{status.roomNumber || 'N/A'}
-                    </span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
-                    <Building className="w-4 h-4" />
-                    <span>{status.building || 'Unknown Building'}, Floor {status.floor || 'G'}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>Occupied until {status.occupiedUntil ? new Date(status.occupiedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}</span>
-                </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Current Room</h3>
+              <span className="badge badge-available">Active Session</span>
             </div>
+          </div>
+        </div>
 
-            <Button onClick={onRelease} variant="danger" className="w-full mt-auto">
-                <LogOut className="w-4 h-4 mr-2" /> Release Room
-            </Button>
-        </Card>
-    );
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">{displayName}</span>
+            <span className="text-sm px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-gray-600 dark:text-gray-300">
+              #{status.roomNumber || 'N/A'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
+            <Building className="w-4 h-4" />
+            <span>{status.building || 'Unknown Building'}, Floor {status.floor || 'G'}</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
+            <Clock className="w-4 h-4" />
+            <span>Occupied until {status.occupiedUntil ? new Date(status.occupiedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown'}</span>
+          </div>
+        </div>
+
+        <button onClick={onRelease} className="btn-danger-modern w-full flex items-center justify-center gap-2">
+          <LogOut className="w-4 h-4" />
+          Release Room
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const LecturerDashboard = () => {
-    const navigate = useNavigate();
-    const { user } = useAuthStore();
-    const queryClient = useQueryClient();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const lecturerId = user?.id || user?.userId;
+  const lecturerId = user?.id || user?.userId;
 
-    const { data: statusData } = useQuery({
-        queryKey: ['lecturerStatus', lecturerId],
-        queryFn: () => lecturerService.getStatus(lecturerId),
-        enabled: !!lecturerId,
-        refetchInterval: 30000, // Refresh every 30s
-    });
+  const { data: statusData } = useQuery({
+    queryKey: ['lecturerStatus', lecturerId],
+    queryFn: () => lecturerService.getStatus(lecturerId),
+    enabled: !!lecturerId,
+    refetchInterval: 30000, // Refresh every 30s
+  });
 
-    const releaseMutation = useMutation({
-        mutationFn: async () => {
-             // We need room ID to release, but getStatus returns room details.
-             // Ideally releaseRoom should take room ID. However, the requirement is just to show the card.
-             // If we want to release, we need the roomId.
-             // Let's assume for now we just show it. 
-             // IF we really want to release, we need the roomId from the status map.
-             // Checked backend: getStatus returns office (name), roomNumber, building, floor. NOT ID.
-             // I added roomNumber/building/floor/office. I DID NOT ADD ID.
-             // Let's rely on roomNumber or name search, OR update backend one more time to include ID.
-             // For now, I will just display the card as requested.
-             toast.error("Release function requires room ID (pending update)");
-        }
-    });
-    
-    // Actually, I can fix the backend to return ID quickly if I want the button to work.
-    // User only asked to "show showing booked room".
-    // I will stick to showing it for now.
+  const releaseMutation = useMutation({
+    mutationFn: async () => {
+      toast.error("Release function requires room ID (pending update)");
+    }
+  });
+
+  const quickActions = [
+    {
+      icon: <Calendar className="w-8 h-8 text-primary-600" />,
+      title: 'My Schedule',
+      description: 'View your teaching schedule for the semester.',
+      action: () => navigate('/schedule'),
+      buttonText: 'View Schedule',
+      variant: 'primary',
+      gradient: 'from-primary-500 to-primary-600'
+    },
+    {
+      icon: <DoorOpen className="w-8 h-8 text-secondary-600" />,
+      title: 'Room Availability',
+      description: 'Check if a room is available for consultation or meeting.',
+      action: () => navigate('/rooms'),
+      buttonText: 'Find a Room',
+      variant: 'secondary',
+      gradient: 'from-secondary-500 to-secondary-600'
+    },
+    {
+      icon: <Users className="w-8 h-8 text-accent-600" />,
+      title: 'My Students',
+      description: 'View student information and office hour requests.',
+      action: () => navigate('/students'),
+      buttonText: 'View Students',
+      variant: 'secondary',
+      gradient: 'from-accent-500 to-accent-600'
+    }
+  ];
 
   return (
     <>
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-8"
-    >
-      <div className="flex justify-between items-center">
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight">Welcome, {user?.name}!</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-                Manage your status and schedule here.
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="space-y-8"
+      >
+        {/* Welcome Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-h1 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+              Welcome, {user?.name}! 👨‍🏫
+            </h1>
+            <p className="text-body-lg text-gray-600 dark:text-gray-300 mt-2">
+              Manage your status and schedule here
             </p>
+          </div>
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary-modern flex items-center gap-2">
+            <Edit className="w-4 h-4" />
+            Update Status
+          </button>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" /> Update Status
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Booked Room Card - component handles its own visibility */}
-        <BookedRoomCard status={statusData} onRelease={() => navigate(`/rooms`)} />
+        {/* Current Status Card */}
+        <div className="stat-card bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/10 dark:to-secondary-900/10 border-primary-200 dark:border-primary-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="icon-container-lg">
+                <BookOpen className="w-8 h-8 text-primary-600" />
+              </div>
+              <div>
+                <div className="stat-label">Current Status</div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className={`badge ${getStatusBadgeClass(user?.status?.status)}`}>
+                    {getStatusText(user?.status?.status)}
+                  </span>
+                  {user?.status?.message && (
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      "{user.status.message}"
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button className="btn-secondary-modern flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Notifications
+            </button>
+          </div>
+        </div>
 
-        <Card className="flex flex-col items-center justify-center p-6 text-center hover:shadow-lg transition-shadow">
-            <Calendar className="w-12 h-12 text-primary-500 mb-4"/>
-            <h3 className="text-lg font-semibold mb-2">My Schedule</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                View your teaching schedule for the semester.
-            </p>
-            <Button onClick={() => navigate('/schedule')} className="w-full">
-                View Schedule
-            </Button>
-        </Card>
-        <Card className="flex flex-col items-center justify-center p-6 text-center hover:shadow-lg transition-shadow">
-            <DoorOpen className="w-12 h-12 text-secondary-500 mb-4"/>
-            <h3 className="text-lg font-semibold mb-2">Room Availability</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Check if a room is available for a consultation or meeting.
-            </p>
-            <Button onClick={() => navigate('/rooms')} variant="secondary" className="w-full">
-                Find a Room
-            </Button>
-        </Card>
-      </div>
-    </motion.div>
+        {/* Booked Room + Quick Actions */}
+        <div>
+          <div className="section-header">
+            <h2 className="section-title">
+              <DoorOpen className="w-6 h-6 text-primary-600" />
+              Quick Actions
+            </h2>
+          </div>
 
-    <UpdateStatusModal
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Booked Room Card - component handles its own visibility */}
+            <BookedRoomCard status={statusData} onRelease={() => navigate(`/rooms`)} />
+
+            {quickActions.map((action, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <div className="card-interactive group">
+                  <div className="p-6 flex flex-col items-center text-center">
+                    {/* Icon with gradient background */}
+                    <div className={`icon-container-lg mb-4 bg-gradient-to-br ${action.gradient} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}>
+                      {action.icon}
+                    </div>
+
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                      {action.title}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 flex-grow">
+                      {action.description}
+                    </p>
+
+                    <button
+                      onClick={action.action}
+                      className={`btn-${action.variant}-modern w-full`}
+                    >
+                      {action.buttonText}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Teaching Tip */}
+        <div className="card-premium p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-4">
+            <div className="icon-container flex-shrink-0">
+              <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-grow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                💡 Teaching Tip
+              </h3>
+              <p className="text-gray-700 dark:text-gray-300">
+                Remember to update your status when you're in a meeting or unavailable. This helps students know when they can reach you for consultations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <UpdateStatusModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentStatus={user?.status}
-    />
+      />
     </>
   );
 };
