@@ -6,6 +6,7 @@ import PublicRoute from './PublicRoute';
 import MainLayout from '../components/layout/MainLayout';
 
 // Pages
+import LandingPage from '../pages/LandingPage';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import ForgotPassword from '../pages/ForgotPassword';
@@ -34,13 +35,12 @@ export const AppRouter = () => {
     {
       element: <PublicRoute />,
       children: [
+        { path: '/', element: <LandingPage /> },
         { path: '/login', element: <Login /> },
         { path: '/signup', element: <Signup /> },
         { path: '/forgot-password', element: <ForgotPassword /> },
         { path: '/reset-password', element: <ResetPassword /> },
         { path: '/verify-otp', element: <TwoFactorAuth /> },
-        // Redirect root to login for unauthenticated users
-        { path: '/', element: <Navigate to="/login" replace /> },
       ],
     },
 
